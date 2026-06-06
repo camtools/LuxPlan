@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#131419">
+<title>FARO · piano luci</title>
+<style>
+  :root{
+    --bg:#131419; --bg2:#181a20; --panel:#1e2129; --panel2:#262a33;
+    --line:rgba(255,255,255,.08); --line2:rgba(255,255,255,.14);
+    --txt:#e8eaef; --dim:#9aa0ac; --faint:#6b7280;
+    --accent:#f4a64a; --accent-soft:rgba(244,166,74,.16);
+    --cool:#5ec8d8; --danger:#e8654f;
+    --font-ui:"Avenir Next","Avenir","Segoe UI",system-ui,sans-serif;
+    --font-mono:"SF Mono","Menlo","Monaco","Roboto Mono",monospace;
+    --bar:54px; --side:312px; --r:9px;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{height:100%; margin:0; overflow:hidden;}
+  body{
+    background:var(--bg); color:var(--txt); font-family:var(--font-ui);
+    font-size:13px; -webkit-font-smoothing:antialiased; user-select:none; -webkit-user-select:none;
+    background-image:
+      radial-gradient(120% 90% at 70% -10%, rgba(244,166,74,.05), transparent 60%),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.025'/%3E%3C/svg%3E");
+  }
+  .app{display:flex; flex-direction:column; height:100%;}
+
+  /* ---------- top bar ---------- */
+  .bar{height:var(--bar); flex:0 0 auto; display:flex; align-items:center; gap:6px;
+    padding:0 12px; background:linear-gradient(180deg,#1b1e25,#171920);
+    border-bottom:1px solid var(--line); position:relative; z-index:30;}
+  .brand{display:flex; align-items:center; gap:9px; padding-right:10px; margin-right:4px;}
+  .brand .mark{width:24px; height:24px; flex:0 0 auto;}
+  .brand .name{font-weight:600; letter-spacing:.22em; font-size:14px;}
+  .brand .name b{color:var(--accent); font-weight:600;}
+  .proj{font-family:var(--font-mono); font-size:12px; color:var(--dim);
+    background:transparent; border:1px solid transparent; border-radius:6px; padding:4px 8px;
+    min-width:60px; max-width:230px; outline:none;}
+  .proj:hover{border-color:var(--line);}
+  .proj:focus{border-color:var(--line2); color:var(--txt); background:var(--bg);}
+  .sep{width:1px; height:24px; background:var(--line); margin:0 4px;}
+  .spacer{flex:1 1 auto;}
+
+  .btn{display:inline-flex; align-items:center; gap:7px; height:34px; padding:0 12px;
+    background:var(--panel); color:var(--txt); border:1px solid var(--line2);
+    border-radius:8px; font-family:var(--font-ui); font-size:12.5px; cursor:pointer;
+    transition:transform .08s, background .15s, border-color .15s, color .15s; white-space:nowrap;}
+  .btn:hover{background:var(--panel2); border-color:rgba(255,255,255,.22);}
+  .btn:active{transform:translateY(1px) scale(.985);}
+  .btn .ic{width:16px; height:16px; opacity:.85;}
+  .btn.primary{background:var(--accent); color:#1a1206; border-color:transparent; font-weight:600;}
+  .btn.primary:hover{background:#ffb866;}
+  .btn.ghost{background:transparent; border-color:transparent; color:var(--dim); padding:0 9px;}
+  .btn.ghost:hover{color:var(--txt); background:var(--panel);}
+  .btn.on{background:var(--accent-soft); border-color:rgba(244,166,74,.5); color:var(--accent);}
+  .btn.icon{width:34px; padding:0; justify-content:center;}
+  .btn[disabled]{opacity:.4; pointer-events:none;}
+
+  .zoomwrap{display:flex; align-items:center; gap:0; background:var(--panel); border:1px solid var(--line2); border-radius:8px; overflow:hidden;}
+  .zoomwrap .zb{width:32px; height:34px; display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--dim); font-size:17px; transition:background .15s,color .15s;}
+  .zoomwrap .zb:hover{background:var(--panel2); color:var(--txt);}
+  .zoomwrap .zv{min-width:52px; text-align:center; font-family:var(--font-mono); font-size:11.5px; color:var(--dim); border-left:1px solid var(--line); border-right:1px solid var(--line); height:34px; line-height:34px; cursor:pointer;}
+
+  /* ---------- main ---------- */
+  .main{flex:1 1 auto; display:flex; min-height:0; position:relative;}
+  .stage{flex:1 1 auto; position:relative; min-width:0; background:
+    repeating-linear-gradient(0deg,transparent,transparent 23px,rgba(255,255,255,.012) 23px,rgba(255,255,255,.012) 24px),
+    repeating-linear-gradient(90deg,transparent,transparent 23px,rgba(255,255,255,.012) 23px,rgba(255,255,255,.012) 24px),
+    radial-gradient(130% 120% at 50% 0%,#1a1d24,#0f1014);
+    overflow:hidden; touch-action:none; cursor:grab;}
+  .stage.grabbing{cursor:grabbing;}
+  .stage.tool{cursor:crosshair;}
+  canvas{display:block; width:100%; height:100%;}
+
+  .empty{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px; text-align:center; pointer-events:none;}
+  .empty .ring{width:74px; height:74px; border-radius:50%; border:1.5px dashed rgba(255,255,255,.18); display:flex; align-items:center; justify-content:center;}
+  .empty h2{font-weight:500; font-size:16px; margin:0; letter-spacing:.02em;}
+  .empty p{color:var(--faint); margin:0; max-width:320px; line-height:1.5; font-size:12.5px;}
+  .empty .btn{pointer-events:auto;}
+
+  .statusbar{position:absolute; left:12px; bottom:12px; display:flex; align-items:center; gap:14px;
+    font-family:var(--font-mono); font-size:11px; color:var(--faint); background:rgba(16,17,21,.72);
+    backdrop-filter:blur(8px); border:1px solid var(--line); border-radius:8px; padding:7px 12px; pointer-events:none;}
+  .statusbar b{color:var(--dim); font-weight:500;}
+  .statusbar .dot{width:5px; height:5px; border-radius:50%; background:var(--faint);}
+
+  .toast{position:absolute; left:50%; bottom:18px; transform:translateX(-50%) translateY(20px); opacity:0;
+    background:#23262f; border:1px solid var(--line2); border-radius:9px; padding:9px 16px; font-size:12.5px;
+    pointer-events:none; transition:.25s; z-index:50; max-width:80%; text-align:center;}
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+
+  /* ---------- sidebar ---------- */
+  .side{flex:0 0 var(--side); width:var(--side); background:linear-gradient(180deg,#1c1f27,#191b22);
+    border-left:1px solid var(--line); display:flex; flex-direction:column; min-height:0; position:relative; z-index:20;
+    transition:margin-right .25s ease;}
+  .side.collapsed{margin-right:calc(var(--side) * -1);}
+  .seg{display:flex; gap:4px; padding:10px 12px 8px; flex:0 0 auto;}
+  .seg button{flex:1; height:34px; background:transparent; border:1px solid var(--line); color:var(--dim);
+    border-radius:8px; cursor:pointer; font-family:var(--font-ui); font-size:12.5px; font-weight:500; letter-spacing:.02em;
+    transition:.15s; display:flex; align-items:center; justify-content:center; gap:7px;}
+  .seg button:hover{color:var(--txt);}
+  .seg button.active{background:var(--accent-soft); border-color:rgba(244,166,74,.45); color:var(--accent);}
+  .seg button .badge{font-family:var(--font-mono); font-size:10px; background:rgba(255,255,255,.08); padding:1px 6px; border-radius:20px; color:var(--dim);}
+  .seg button.active .badge{background:rgba(244,166,74,.2); color:var(--accent);}
+
+  .panel-body{flex:1 1 auto; overflow-y:auto; overflow-x:hidden; padding:4px 12px 16px;}
+  .panel-body::-webkit-scrollbar{width:9px;}
+  .panel-body::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1); border-radius:9px; border:2px solid transparent; background-clip:padding-box;}
+  .panel-body::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.18); background-clip:padding-box;}
+
+  /* search */
+  .search{position:relative; margin:4px 0 10px;}
+  .search input{width:100%; height:34px; background:var(--bg); border:1px solid var(--line); border-radius:8px;
+    color:var(--txt); padding:0 12px 0 32px; font-family:var(--font-ui); font-size:12.5px; outline:none; transition:border-color .15s;}
+  .search input:focus{border-color:var(--line2);}
+  .search svg{position:absolute; left:10px; top:9px; width:15px; height:15px; opacity:.5;}
+
+  .cat{margin-bottom:6px;}
+  .cat-h{display:flex; align-items:center; gap:8px; padding:8px 4px; cursor:pointer; color:var(--dim); font-size:11px; text-transform:uppercase; letter-spacing:.12em; font-weight:600;}
+  .cat-h:hover{color:var(--txt);}
+  .cat-h .chev{width:11px; height:11px; transition:transform .2s; opacity:.7;}
+  .cat.closed .chev{transform:rotate(-90deg);}
+  .cat.closed .cat-list{display:none;}
+  .cat-h .ln{flex:1; height:1px; background:var(--line);}
+
+  .fcard{display:flex; align-items:center; gap:11px; padding:9px 10px; border-radius:9px; cursor:pointer;
+    border:1px solid transparent; transition:background .14s, border-color .14s, transform .08s; margin-bottom:3px;}
+  .fcard:hover{background:var(--panel); border-color:var(--line);}
+  .fcard:active{transform:scale(.98);}
+  .fcard .ico{width:30px; height:30px; flex:0 0 auto; display:flex; align-items:center; justify-content:center;}
+  .fcard .meta{flex:1; min-width:0;}
+  .fcard .fn{font-size:12.5px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .fcard .fs{font-family:var(--font-mono); font-size:10.5px; color:var(--faint); margin-top:2px;}
+  .fcard .add{width:22px; height:22px; border-radius:6px; border:1px solid var(--line2); color:var(--dim);
+    display:flex; align-items:center; justify-content:center; font-size:15px; flex:0 0 auto; transition:.14s;}
+  .fcard:hover .add{border-color:var(--accent); color:var(--accent);}
+
+  /* properties */
+  .prop-empty{padding:48px 16px; text-align:center; color:var(--faint); line-height:1.6;}
+  .prop-empty svg{width:34px; height:34px; opacity:.35; margin-bottom:12px;}
+  .prophead{display:flex; align-items:center; gap:10px; padding:8px 2px 14px;}
+  .prophead .pic{width:38px; height:38px; flex:0 0 auto;}
+  .prophead .pt{flex:1; min-width:0;}
+  .prophead .pt .l1{font-size:13px; font-weight:600;}
+  .prophead .pt .l2{font-family:var(--font-mono); font-size:10.5px; color:var(--faint); margin-top:2px;}
+
+  .field{margin-bottom:13px;}
+  .field>label{display:block; font-size:10.5px; text-transform:uppercase; letter-spacing:.1em; color:var(--dim); margin-bottom:5px; font-weight:600;}
+  .field input[type=text], .field input[type=number], .field select{
+    width:100%; height:34px; background:var(--bg); border:1px solid var(--line); border-radius:7px;
+    color:var(--txt); padding:0 10px; font-family:var(--font-ui); font-size:12.5px; outline:none; transition:border-color .15s;}
+  .field input:focus, .field select:focus{border-color:var(--accent); }
+  .field .row{display:flex; gap:8px;}
+  .field .row>div{flex:1;}
+  .unit-in{position:relative;}
+  .unit-in input{padding-right:30px; font-family:var(--font-mono);}
+  .unit-in .u{position:absolute; right:10px; top:9px; font-family:var(--font-mono); font-size:11px; color:var(--faint); pointer-events:none;}
+
+  .slider-row{display:flex; align-items:center; gap:10px;}
+  input[type=range]{-webkit-appearance:none; appearance:none; height:4px; background:var(--line2); border-radius:4px; flex:1; outline:none;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none; width:16px; height:16px; border-radius:50%; background:var(--accent); cursor:pointer; border:2px solid #1a1206; box-shadow:0 1px 3px rgba(0,0,0,.4);}
+  .kelv-bar{height:7px; border-radius:5px; margin:7px 0 9px; background:linear-gradient(90deg,#ff8a2a,#ffd6a0,#fff,#cfe0ff,#9bb8ff);}
+  .swatch{width:16px; height:16px; border-radius:5px; border:1px solid var(--line2); flex:0 0 auto;}
+
+  .prop-actions{display:flex; gap:8px; margin-top:18px; padding-top:14px; border-top:1px solid var(--line);}
+  .prop-actions .btn{flex:1; justify-content:center;}
+  .btn.danger{background:transparent; border-color:rgba(232,101,79,.45); color:var(--danger);}
+  .btn.danger:hover{background:rgba(232,101,79,.12);}
+
+  /* sidebar toggle (floating) */
+  .sidetoggle{position:absolute; top:50%; right:0; transform:translateY(-50%); z-index:25;
+    width:22px; height:54px; background:var(--panel); border:1px solid var(--line2); border-right:none;
+    border-radius:9px 0 0 9px; display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--dim); transition:.15s;}
+  .sidetoggle:hover{color:var(--txt); background:var(--panel2);}
+  .side.collapsed .sidetoggle{right:100%;}
+  .sidetoggle svg{width:13px; height:13px; transition:transform .25s;}
+  .side.collapsed .sidetoggle svg{transform:rotate(180deg);}
+
+  /* portrait hint */
+  .portrait{position:fixed; inset:0; background:var(--bg); z-index:200; display:none; flex-direction:column; align-items:center; justify-content:center; gap:18px; text-align:center; padding:30px;}
+  .portrait svg{width:54px; height:54px; opacity:.6; animation:rot 3s ease-in-out infinite;}
+  @keyframes rot{0%,40%{transform:rotate(0)} 60%,100%{transform:rotate(90deg)}}
+  @media (max-width:820px) and (orientation:portrait){ .portrait{display:flex;} }
+
+  .hidden{display:none !important;}
+  input[type=number]{-moz-appearance:textfield;}
+  input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- ============ TOP BAR ============ -->
+  <div class="bar">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 40 40" fill="none">
+        <circle cx="20" cy="20" r="18.5" stroke="#2c303a" stroke-width="1.2"/>
+        <path d="M20 20 L38 12 A19 19 0 0 1 38 28 Z" fill="#f4a64a" fill-opacity="0.9"/>
+        <circle cx="20" cy="20" r="5.2" fill="#f4a64a"/>
+        <circle cx="20" cy="20" r="9" stroke="#f4a64a" stroke-opacity=".4" stroke-width="1"/>
+      </svg>
+      <div class="name"><b>FARO</b></div>
+    </div>
+    <input class="proj" id="projName" value="Nuovo progetto" maxlength="48" spellcheck="false">
+    <div class="sep"></div>
+
+    <button class="btn" id="btnLoad"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 16V4m0 0L8 8m4-4l4 4M4 17v2a1 1 0 001 1h14a1 1 0 001-1v-2" stroke-linecap="round" stroke-linejoin="round"/></svg>Planimetria</button>
+    <button class="btn ghost icon" id="btnNew" title="Nuovo progetto"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg></button>
+    <button class="btn ghost icon" id="btnOpen" title="Apri progetto (.json)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" stroke-linejoin="round"/></svg></button>
+    <button class="btn ghost icon" id="btnExport" title="Esporta progetto (.json)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 4v12m0 0l4-4m-4 4l-4-4M4 20h16" stroke-linecap="round" stroke-linejoin="round" transform="rotate(180 12 12)"/></svg></button>
+
+    <div class="spacer"></div>
+
+    <button class="btn ghost icon" id="btnUndo" title="Annulla (⌘Z)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 7L4 12l5 5M4 12h11a5 5 0 010 10h-1" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <button class="btn ghost icon" id="btnRedo" title="Ripeti (⇧⌘Z)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M15 7l5 5-5 5M20 12H9a5 5 0 000 10h1" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <div class="sep"></div>
+    <button class="btn ghost" id="btnGrid" title="Griglia"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg></button>
+    <button class="btn ghost" id="btnScale"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 17L17 3l4 4L7 21z M7 13l2 2M11 9l2 2M15 5l2 2" stroke-linecap="round" stroke-linejoin="round"/></svg>Scala</button>
+    <button class="btn ghost" id="btnMeasure" title="Misura distanza"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 12h16M4 12l3-3M4 12l3 3M20 12l-3-3M20 12l-3 3" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <div class="sep"></div>
+    <div class="zoomwrap">
+      <div class="zb" id="zoomOut">−</div>
+      <div class="zv" id="zoomVal" title="Adatta alla vista">100%</div>
+      <div class="zb" id="zoomIn">+</div>
+    </div>
+  </div>
+
+  <!-- ============ MAIN ============ -->
+  <div class="main">
+    <div class="stage" id="stage">
+      <canvas id="cv"></canvas>
+      <div class="empty" id="empty">
+        <div class="ring">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#f4a64a" stroke-width="1.4"><path d="M3 5a2 2 0 012-2h7l2 2h5a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V5z" stroke-linejoin="round"/><path d="M9 13l2.5 3 3.5-4.5L19 17" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div>
+          <h2>Carica una planimetria</h2>
+          <p>Importa il PDF o un JPEG/PNG dell'ambiente. Poi trascina i fari dalla libreria a destra e posizionali sulla pianta.</p>
+        </div>
+        <button class="btn primary" id="btnLoad2">Scegli file</button>
+      </div>
+      <div class="statusbar" id="status">
+        <span><b id="stFix">0</b> fari</span>
+        <span class="dot"></span>
+        <span id="stScale">scala non impostata</span>
+        <span class="dot"></span>
+        <span id="stPos">—</span>
+      </div>
+      <div class="toast" id="toast"></div>
+    </div>
+
+    <!-- ============ SIDEBAR ============ -->
+    <div class="side" id="side">
+      <div class="sidetoggle" id="sideToggle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 6l-6 6 6 6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="seg">
+        <button id="tabLib" class="active"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0116 0" stroke-linecap="round"/></svg>Libreria</button>
+        <button id="tabProp">Proprietà <span class="badge hidden" id="propBadge"></span></button>
+      </div>
+      <div class="panel-body" id="libBody"></div>
+      <div class="panel-body hidden" id="propBody"></div>
+    </div>
+  </div>
+</div>
+
+<div class="portrait">
+  <svg viewBox="0 0 24 24" fill="none" stroke="#f4a64a" stroke-width="1.4"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M10 18h4"/></svg>
+  <div>
+    <h2 style="margin:0 0 6px; font-weight:500;">Ruota in orizzontale</h2>
+    <p style="color:#6b7280; margin:0; max-width:280px; line-height:1.5;">FARO è pensato per lavorare in landscape.</p>
+  </div>
+</div>
+
+<input type="file" id="fileInput" accept=".pdf,.jpg,.jpeg,.png,image/*,application/pdf" class="hidden">
+<input type="file" id="projInput" accept=".json,application/json" class="hidden">
+
+<script>
+"use strict";
+/* =========================================================================
+   FARO · piano luci  —  on-set lighting plot
+   Single-file app. Touch + mouse. Offline-first (Apple system fonts).
+   ========================================================================= */
+
+/* ---------------- Fixture presets (real fixtures, editable) ----------------
+   shape: panel | spot | tube | space | box
+   k: default kelvin; bi:[min,max] => bicolor/tunable; w,h in "units" (auto-scaled to plan)
+*/
+const PRESETS = [
+  {cat:"Pannelli LED", items:[
+    {id:"sky-s30",  name:"ARRI SkyPanel S30-C", shape:"panel", bi:[2800,10000], k:5600, w:240,  watt:200,  u:[3.0,2.0]},
+    {id:"sky-s60",  name:"ARRI SkyPanel S60-C", shape:"panel", bi:[2800,10000], k:5600, watt:420,  u:[4.2,2.0]},
+    {id:"sky-s120", name:"ARRI SkyPanel S120-C",shape:"panel", bi:[2800,10000], k:5600, watt:850,  u:[6.4,2.0]},
+    {id:"nova-p300",name:"Aputure Nova P300c",  shape:"panel", bi:[2000,10000], k:5600, watt:300,  u:[3.6,2.2]},
+    {id:"nova-p600",name:"Aputure Nova P600c",  shape:"panel", bi:[2000,10000], k:5600, watt:600,  u:[5.0,2.4]},
+    {id:"gemini",   name:"Litepanels Gemini 2x1",shape:"panel",bi:[2700,10000], k:5600, watt:325,  u:[4.4,2.3]},
+    {id:"litemat2", name:"LiteGear LiteMat 2L",  shape:"panel", bi:[2750,6000],  k:5000, watt:180,  u:[4.2,1.4]},
+    {id:"litemat4", name:"LiteGear LiteMat 4",   shape:"panel", bi:[2750,6000],  k:5000, watt:400,  u:[6.6,1.6]},
+    {id:"dmg-sl1",  name:"DMG SL1 MIX",          shape:"panel", bi:[1700,10000], k:5600, watt:280,  u:[4.2,1.5]},
+    {id:"dmg-max",  name:"DMG MAXI MIX",         shape:"panel", bi:[1700,10000], k:5600, watt:500,  u:[5.2,1.7]},
+  ]},
+  {cat:"COB / Spot", items:[
+    {id:"ls300",  name:"Aputure LS 300d II",  shape:"spot", k:5500, watt:350,  u:[2.4,2.4]},
+    {id:"ls600d", name:"Aputure LS 600d Pro", shape:"spot", k:5600, watt:720,  u:[2.8,2.8]},
+    {id:"ls600c", name:"Aputure LS 600c Pro", shape:"spot", bi:[2300,10000], k:5600, watt:720, u:[2.9,2.9]},
+    {id:"ls1200", name:"Aputure LS 1200d Pro",shape:"spot", k:5600, watt:1440, u:[3.4,3.4]},
+    {id:"am200",  name:"Aputure amaran 200d", shape:"spot", k:5600, watt:200,  u:[2.0,2.0]},
+  ]},
+  {cat:"Fresnel (tungsteno)", items:[
+    {id:"ar300", name:"ARRI 300 Plus",   shape:"spot", k:3200, watt:300,   u:[2.0,2.0]},
+    {id:"ar650", name:"ARRI 650 Plus",   shape:"spot", k:3200, watt:650,   u:[2.4,2.4]},
+    {id:"jr1k",  name:"ARRI Junior 1000",shape:"spot", k:3200, watt:1000,  u:[2.9,2.9]},
+    {id:"jr2k",  name:"ARRI Junior 2000",shape:"spot", k:3200, watt:2000,  u:[3.5,3.5]},
+    {id:"sr5k",  name:"ARRI Senior 5000",shape:"spot", k:3200, watt:5000,  u:[4.4,4.4]},
+    {id:"t12",   name:"ARRI T12 (10kW)", shape:"spot", k:3200, watt:10000, u:[5.6,5.6]},
+  ]},
+  {cat:"HMI", items:[
+    {id:"m18", name:"ARRI M18",        shape:"spot", k:5600, watt:1800, u:[3.0,3.0]},
+    {id:"m40", name:"ARRI M40",        shape:"spot", k:5600, watt:4000, u:[3.8,3.8]},
+    {id:"m90", name:"ARRI M90",        shape:"spot", k:5600, watt:9000, u:[4.8,4.8]},
+    {id:"jok8",name:"K5600 Joker 800", shape:"spot", k:5600, watt:800,  u:[2.4,2.4]},
+    {id:"par12",name:"HMI PAR 1.2kW",  shape:"spot", k:5600, watt:1200, u:[2.8,2.8]},
+    {id:"par25",name:"HMI PAR 2.5kW",  shape:"spot", k:5600, watt:2500, u:[3.4,3.4]},
+  ]},
+  {cat:"Tubi", items:[
+    {id:"titan", name:"Astera Titan Tube",     shape:"tube", bi:[1750,20000], k:5600, watt:72, u:[8.0,0.7]},
+    {id:"helios",name:"Astera Helios Tube",    shape:"tube", bi:[1750,20000], k:5600, watt:25, u:[4.2,0.7]},
+    {id:"qr4",   name:"Quasar Rainbow 2 · 4ft",shape:"tube", bi:[2000,6000],  k:5600, watt:55, u:[8.0,0.55]},
+    {id:"qr2",   name:"Quasar Rainbow 2 · 2ft",shape:"tube", bi:[2000,6000],  k:5600, watt:28, u:[4.2,0.55]},
+  ]},
+  {cat:"Soft / Altro", items:[
+    {id:"space", name:"Space Light",      shape:"space", k:3200, watt:6000, u:[4.4,4.4]},
+    {id:"china", name:"China Ball",       shape:"space", k:3200, watt:1000, u:[3.0,3.0]},
+    {id:"prac",  name:"Pratica / lampada",shape:"box",   k:2700, watt:60,   u:[1.5,1.5]},
+    {id:"gen",   name:"Faro generico",    shape:"box",   bi:[1800,10000], k:5600, watt:1000, u:[2.2,2.2]},
+  ]},
+];
+const PRESET_MAP = {};
+PRESETS.forEach(g=>g.items.forEach(p=>PRESET_MAP[p.id]=p));
+
+/* ---------------- Kelvin -> RGB (blackbody approx) ---------------- */
+function kelvinRGB(kelvin){
+  let t = Math.max(1500, Math.min(15000, kelvin)) / 100, r,g,b;
+  if(t<=66){ r=255; } else { r = 329.698727446 * Math.pow(t-60, -0.1332047592); }
+  if(t<=66){ g = 99.4708025861*Math.log(t) - 161.1195681661; } else { g = 288.1221695283*Math.pow(t-60,-0.0755148492); }
+  if(t>=66){ b=255; } else if(t<=19){ b=0; } else { b = 138.5177312231*Math.log(t-10) - 305.0447927307; }
+  const c = v => Math.round(Math.max(0,Math.min(255,v)));
+  return [c(r),c(g),c(b)];
+}
+const kelvinCSS = (k,a=1)=>{ const [r,g,b]=kelvinRGB(k); return `rgba(${r},${g},${b},${a})`; };
+
+/* ---------------- State ---------------- */
+const ST = {
+  project: blankProject(),
+  view:{ ox:60, oy:60, zoom:1 },
+  bgImg:null,
+  sel:null,
+  mode:"select",            // select | scale | measure
+  grid:false,
+  unit:22,
+  hist:[], future:[],
+};
+function blankProject(){
+  return { name:"Nuovo progetto", plan:null, planW:0, planH:0,
+           scale:null, fixtures:[], v:1, updated:Date.now() };
+}
+
+/* ---------------- DOM ---------------- */
+const $ = s => document.querySelector(s);
+const cv = $("#cv"), ctx = cv.getContext("2d");
+const stage = $("#stage");
+let DPR = window.devicePixelRatio||1, W=0, H=0;
+
+/* ---------------- Storage (localStorage w/ in-memory fallback) ---------------- */
+const Store = (()=>{
+  let ok=false, mem={};
+  try{ const k="__faro__"; localStorage.setItem(k,"1"); localStorage.removeItem(k); ok=true; }catch(e){ ok=false; }
+  return {
+    ok,
+    get(k){ try{ return ok?localStorage.getItem(k):mem[k]; }catch(e){ return mem[k]; } },
+    set(k,v){ try{ ok?localStorage.setItem(k,v):mem[k]=v; return true; }catch(e){ ok=false; mem[k]=v; return false; } }
+  };
+})();
+const SAVE_KEY="faro.current";
+let saveTimer=null, saveBlocked=false;
+function autosave(){
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(()=>{
+    ST.project.updated=Date.now();
+    const ok = Store.set(SAVE_KEY, JSON.stringify(ST.project));
+    if(!ok && !saveBlocked){ saveBlocked=true; toast("Progetto grande: auto-salvataggio off, usa Esporta"); }
+  }, 600);
+}
+
+/* ---------------- Helpers ---------------- */
+function toast(msg){ const t=$("#toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove("show"),2400); }
+const uid = ()=> Math.random().toString(36).slice(2,9);
+function w2s(x,y){ return { x: x*ST.view.zoom+ST.view.ox, y: y*ST.view.zoom+ST.view.oy }; }
+function s2w(x,y){ return { x:(x-ST.view.ox)/ST.view.zoom, y:(y-ST.view.oy)/ST.view.zoom }; }
+function rot(px,py,deg){ const a=deg*Math.PI/180, c=Math.cos(a), s=Math.sin(a); return { x:px*c-py*s, y:px*s+py*c }; }
+function planUnit(){ return ST.project.planW ? Math.max(8, Math.max(ST.project.planW,ST.project.planH)/48) : 22; }
+
+/* ---------------- History ---------------- */
+function snapshot(){
+  ST.hist.push(JSON.stringify({fixtures:ST.project.fixtures, scale:ST.project.scale}));
+  if(ST.hist.length>60) ST.hist.shift();
+  ST.future.length=0; updateUndo();
+}
+function applySnap(s){ const o=JSON.parse(s); ST.project.fixtures=o.fixtures; ST.project.scale=o.scale; }
+function undo(){ if(!ST.hist.length) return; ST.future.push(JSON.stringify({fixtures:ST.project.fixtures,scale:ST.project.scale}));
+  applySnap(ST.hist.pop()); ST.sel=null; updateUndo(); refresh(); autosave(); }
+function redo(){ if(!ST.future.length) return; ST.hist.push(JSON.stringify({fixtures:ST.project.fixtures,scale:ST.project.scale}));
+  applySnap(ST.future.pop()); ST.sel=null; updateUndo(); refresh(); autosave(); }
+function updateUndo(){ $("#btnUndo").disabled=!ST.hist.length; $("#btnRedo").disabled=!ST.future.length; }
+
+/* =========================================================================
+   RENDER
+   ========================================================================= */
+function resize(){
+  DPR=window.devicePixelRatio||1;
+  W=stage.clientWidth; H=stage.clientHeight;
+  cv.width=W*DPR; cv.height=H*DPR; cv.style.width=W+"px"; cv.style.height=H+"px";
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  render();
+}
+function render(){
+  ctx.clearRect(0,0,W,H);
+  if(ST.grid) drawGrid();
+  if(ST.bgImg){
+    const z=ST.view.zoom;
+    ctx.imageSmoothingEnabled = z<2.5;
+    ctx.drawImage(ST.bgImg, ST.view.ox, ST.view.oy, ST.project.planW*z, ST.project.planH*z);
+  }
+  for(const f of ST.project.fixtures) drawFixture(f, f===ST.sel);
+  if(ST.sel) drawHandles(ST.sel);
+  if(ST.project.scale) drawScaleLine();
+  if(_drag && (_drag.type==="scale"||_drag.type==="measure")) drawTempLine(_drag);
+  drawScaleBar();
+}
+function drawGrid(){
+  const z=ST.view.zoom;
+  let step = ST.project.scale ? ST.project.scale.pxPerM : 100;   // 1m if calibrated, else 100px
+  let sp = step*z; if(sp<8) return; while(sp<40){ step*=2; sp=step*z; }
+  const x0 = ST.view.ox % sp, y0 = ST.view.oy % sp;
+  ctx.strokeStyle="rgba(255,255,255,.05)"; ctx.lineWidth=1; ctx.beginPath();
+  for(let x=x0; x<W; x+=sp){ ctx.moveTo(x,0); ctx.lineTo(x,H); }
+  for(let y=y0; y<H; y+=sp){ ctx.moveTo(0,y); ctx.lineTo(W,y); }
+  ctx.stroke();
+}
+function fixtureColors(f){
+  const k = f.k || 5600;
+  const base = kelvinRGB(k);
+  // keep readable on white plans: solid fill = kelvin colour, dark rim
+  return { fill:`rgb(${base[0]},${base[1]},${base[2]})`, rim:"#10131a" };
+}
+function drawFixture(f, sel){
+  const z=ST.view.zoom, s=w2s(f.x,f.y);
+  const w=f.w*z, h=f.h*z;
+  const col=fixtureColors(f);
+  ctx.save();
+  ctx.translate(s.x,s.y); ctx.rotate(f.rot*Math.PI/180);
+  ctx.shadowColor="rgba(0,0,0,.45)"; ctx.shadowBlur=sel?10:5; ctx.shadowOffsetY=2;
+  ctx.fillStyle=col.fill; ctx.strokeStyle=sel?"#f4a64a":col.rim; ctx.lineWidth=sel?2:1.4;
+  const sh=f.shape;
+  if(sh==="panel"||sh==="box"){
+    const r=Math.min(w,h)*(sh==="box"?0.18:0.12);
+    rr(-w/2,-h/2,w,h,r); ctx.fill(); ctx.shadowBlur=0; ctx.stroke();
+    // face indicator (front edge = local -y)
+    ctx.beginPath(); ctx.moveTo(-w/2+r,-h/2); ctx.lineTo(w/2-r,-h/2);
+    ctx.strokeStyle="rgba(16,19,26,.55)"; ctx.lineWidth=Math.max(2,h*0.12); ctx.lineCap="round"; ctx.stroke();
+  } else if(sh==="tube"){
+    rr(-w/2,-h/2,w,h,h/2); ctx.fill(); ctx.shadowBlur=0; ctx.stroke();
+  } else if(sh==="spot"){
+    const rad=Math.min(w,h)/2;
+    ctx.beginPath(); ctx.arc(0,0,rad,0,7); ctx.fill(); ctx.shadowBlur=0; ctx.stroke();
+    // aim notch (local -y)
+    ctx.beginPath(); ctx.moveTo(0,-rad); ctx.lineTo(-rad*0.34,-rad*1.4); ctx.lineTo(rad*0.34,-rad*1.4); ctx.closePath();
+    ctx.fillStyle=col.fill; ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.arc(0,0,rad*0.4,0,7); ctx.strokeStyle="rgba(16,19,26,.5)"; ctx.lineWidth=1.2; ctx.stroke();
+  } else if(sh==="space"){
+    const rad=Math.min(w,h)/2;
+    ctx.beginPath(); ctx.arc(0,0,rad,0,7); ctx.fill(); ctx.shadowBlur=0; ctx.stroke();
+    ctx.setLineDash([4,4]); ctx.beginPath(); ctx.arc(0,0,rad*0.62,0,7); ctx.strokeStyle="rgba(16,19,26,.45)"; ctx.lineWidth=1.2; ctx.stroke(); ctx.setLineDash([]);
+  }
+  ctx.restore();
+
+  // label (always upright, below fixture)
+  const half = Math.max(w,h)/2;
+  drawLabel(f.name||"", s.x, s.y+half+13, f);
+}
+function rr(x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+function drawLabel(text,cx,cy,f){
+  if(!text) return;
+  ctx.font="600 11px "+getFont();
+  const tw=ctx.measureText(text).width, pad=6, w=tw+pad*2, h=18;
+  ctx.fillStyle="rgba(14,16,21,.82)"; rr(cx-w/2,cy-h/2,w,h,5); ctx.fill();
+  ctx.strokeStyle=kelvinCSS(f.k||5600,.55); ctx.lineWidth=1; ctx.stroke();
+  ctx.fillStyle="#eef0f4"; ctx.textAlign="center"; ctx.textBaseline="middle";
+  ctx.fillText(text,cx,cy+0.5);
+  ctx.textAlign="start"; ctx.textBaseline="alphabetic";
+}
+function getFont(){ return '"Avenir Next","Avenir","Segoe UI",system-ui,sans-serif'; }
+
+function corners(f){
+  const c=[[-f.w/2,-f.h/2],[f.w/2,-f.h/2],[f.w/2,f.h/2],[-f.w/2,f.h/2]];
+  return c.map(([px,py])=>{ const r=rot(px,py,f.rot); return w2s(f.x+r.x,f.y+r.y); });
+}
+function rotateHandlePos(f){
+  const off = (f.h/2) + 26/ST.view.zoom;
+  const r=rot(0,-off,f.rot); return w2s(f.x+r.x,f.y+r.y);
+}
+function drawHandles(f){
+  const cs=corners(f);
+  ctx.strokeStyle="rgba(244,166,74,.85)"; ctx.lineWidth=1.4; ctx.setLineDash([5,4]);
+  ctx.beginPath(); ctx.moveTo(cs[0].x,cs[0].y); for(let i=1;i<4;i++)ctx.lineTo(cs[i].x,cs[i].y); ctx.closePath(); ctx.stroke(); ctx.setLineDash([]);
+  // rotate handle
+  const rh=rotateHandlePos(f), top={x:(cs[0].x+cs[1].x)/2,y:(cs[0].y+cs[1].y)/2};
+  ctx.strokeStyle="rgba(244,166,74,.6)"; ctx.beginPath(); ctx.moveTo(top.x,top.y); ctx.lineTo(rh.x,rh.y); ctx.stroke();
+  handleDot(rh.x,rh.y,"rot");
+  // resize handle (bottom-right corner = cs[2])
+  handleDot(cs[2].x,cs[2].y,"size");
+}
+function handleDot(x,y,kind){
+  ctx.beginPath(); ctx.arc(x,y,7,0,7); ctx.fillStyle="#1a1206"; ctx.fill();
+  ctx.lineWidth=2; ctx.strokeStyle="#f4a64a"; ctx.stroke();
+  if(kind==="rot"){ ctx.beginPath(); ctx.arc(x,y,2.4,0,7); ctx.fillStyle="#f4a64a"; ctx.fill(); }
+}
+function drawScaleLine(){
+  const sc=ST.project.scale; if(!sc||!sc.a) return;
+  const a=w2s(sc.a.x,sc.a.y), b=w2s(sc.b.x,sc.b.y);
+  ctx.strokeStyle=ST.mode==="scale"?"#5ec8d8":"rgba(94,200,216,.5)"; ctx.lineWidth=2; ctx.setLineDash([6,4]);
+  ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke(); ctx.setLineDash([]);
+  endCap(a); endCap(b);
+  midLabel((a.x+b.x)/2,(a.y+b.y)/2, sc.meters.toFixed(2)+" m", "#5ec8d8");
+}
+function drawTempLine(d){
+  if(!d.b) return;
+  const a=w2s(d.a.x,d.a.y), b=w2s(d.b.x,d.b.y);
+  const col=d.type==="scale"?"#5ec8d8":"#f4a64a";
+  ctx.strokeStyle=col; ctx.lineWidth=2; ctx.setLineDash([6,4]); ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke(); ctx.setLineDash([]);
+  endCap(a); endCap(b);
+  const dist=Math.hypot(d.b.x-d.a.x,d.b.y-d.a.y);
+  let lbl; if(ST.project.scale){ lbl=(dist/ST.project.scale.pxPerM).toFixed(2)+" m"; } else { lbl=Math.round(dist)+" px"; }
+  midLabel((a.x+b.x)/2,(a.y+b.y)/2,lbl,col);
+}
+function endCap(p){ ctx.beginPath(); ctx.arc(p.x,p.y,4,0,7); ctx.fillStyle="#0e1015"; ctx.fill(); ctx.lineWidth=2; ctx.strokeStyle=ctx.strokeStyle; ctx.stroke(); }
+function midLabel(x,y,text,col){
+  ctx.font="600 11px "+getFont(); const tw=ctx.measureText(text).width, w=tw+14,h=20;
+  ctx.fillStyle="rgba(14,16,21,.9)"; rr(x-w/2,y-h/2,w,h,6); ctx.fill(); ctx.strokeStyle=col; ctx.lineWidth=1; ctx.stroke();
+  ctx.fillStyle=col; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillText(text,x,y+0.5); ctx.textAlign="start"; ctx.textBaseline="alphabetic";
+}
+function drawScaleBar(){
+  if(!ST.project.scale) return;
+  const ppm=ST.project.scale.pxPerM*ST.view.zoom;
+  let meters=1; let len=ppm; const targets=[0.5,1,2,5,10,20,50];
+  for(const t of targets){ if(ppm*t>=70){ meters=t; len=ppm*t; break; } meters=t; len=ppm*t; }
+  const x=14, y=H-46;
+  ctx.strokeStyle="rgba(255,255,255,.5)"; ctx.lineWidth=2; ctx.beginPath();
+  ctx.moveTo(x,y); ctx.lineTo(x+len,y); ctx.moveTo(x,y-4); ctx.lineTo(x,y+4); ctx.moveTo(x+len,y-4); ctx.lineTo(x+len,y+4); ctx.stroke();
+  ctx.font="11px "+'"SF Mono","Menlo",monospace'; ctx.fillStyle="rgba(255,255,255,.6)"; ctx.fillText(meters+" m",x+len+8,y+4);
+}
+
+/* =========================================================================
+   HIT TESTING
+   ========================================================================= */
+function hitFixture(sx,sy){
+  for(let i=ST.project.fixtures.length-1;i>=0;i--){
+    const f=ST.project.fixtures[i];
+    const wp=s2w(sx,sy);
+    const d=rot(wp.x-f.x, wp.y-f.y, -f.rot);
+    const pad = f.shape==="spot"||f.shape==="space" ? 4/ST.view.zoom : 2/ST.view.zoom;
+    if(Math.abs(d.x)<=f.w/2+pad && Math.abs(d.y)<=f.h/2+pad) return f;
+  }
+  return null;
+}
+function hitHandle(f,sx,sy){
+  if(!f) return null;
+  const rh=rotateHandlePos(f); if(Math.hypot(sx-rh.x,sy-rh.y)<=13) return "rot";
+  const cs=corners(f); if(Math.hypot(sx-cs[2].x,sy-cs[2].y)<=13) return "size";
+  return null;
+}
+
+/* =========================================================================
+   POINTER / GESTURES
+   ========================================================================= */
+const pointers=new Map();
+let _drag=null, pinch=null;
+function localPt(e){ const r=cv.getBoundingClientRect(); return { x:e.clientX-r.left, y:e.clientY-r.top }; }
+
+cv.addEventListener("pointerdown",e=>{
+  cv.setPointerCapture(e.pointerId);
+  const p=localPt(e); pointers.set(e.pointerId,p);
+
+  if(pointers.size===2){
+    _drag=null;
+    const pts=[...pointers.values()];
+    pinch={ d:dist(pts[0],pts[1]), mid:mid(pts[0],pts[1]) };
+    return;
+  }
+  if(pointers.size>2) return;
+
+  // tools
+  if(ST.mode==="scale"||ST.mode==="measure"){
+    _drag={ type:ST.mode, a:s2w(p.x,p.y), b:s2w(p.x,p.y) }; render(); return;
+  }
+  // handle on selected?
+  const hh=hitHandle(ST.sel,p.x,p.y);
+  if(hh){
+    snapshot();
+    if(hh==="rot"){ _drag={type:"rotate", f:ST.sel, startRot:ST.sel.rot, startA:angleTo(ST.sel,p)}; }
+    else { const c=w2s(ST.sel.x,ST.sel.y); _drag={type:"resize", f:ST.sel, startW:ST.sel.w, startH:ST.sel.h, startD:Math.max(6,Math.hypot(p.x-c.x,p.y-c.y))}; }
+    stage.classList.add("grabbing"); return;
+  }
+  // fixture?
+  const f=hitFixture(p.x,p.y);
+  if(f){
+    select(f,{toProp:true}); snapshot();
+    const wp=s2w(p.x,p.y);
+    _drag={type:"move", f, dx:f.x-wp.x, dy:f.y-wp.y, moved:false};
+    stage.classList.add("grabbing");
+  } else {
+    select(null);
+    _drag={type:"pan", last:p};
+    stage.classList.add("grabbing");
+  }
+  render();
+},{passive:false});
+
+cv.addEventListener("pointermove",e=>{
+  const p=localPt(e);
+  if(pointers.has(e.pointerId)) pointers.set(e.pointerId,p);
+  // status coords
+  if(ST.bgImg){ const wp=s2w(p.x,p.y); $("#stPos").textContent=`${Math.round(wp.x)}, ${Math.round(wp.y)}`; }
+
+  if(pinch && pointers.size>=2){
+    const pts=[...pointers.values()]; const nd=dist(pts[0],pts[1]), nm=mid(pts[0],pts[1]);
+    if(pinch.d>0){ zoomAt(nm.x,nm.y, nd/pinch.d); }
+    ST.view.ox += nm.x-pinch.mid.x; ST.view.oy += nm.y-pinch.mid.y;
+    pinch.d=nd; pinch.mid=nm; render(); return;
+  }
+  if(!_drag) return;
+  const d=_drag;
+  if(d.type==="pan"){ ST.view.ox+=p.x-d.last.x; ST.view.oy+=p.y-d.last.y; d.last=p; render(); }
+  else if(d.type==="move"){ const wp=s2w(p.x,p.y); d.f.x=wp.x+d.dx; d.f.y=wp.y+d.dy; d.moved=true; render(); }
+  else if(d.type==="resize"){ const c=w2s(d.f.x,d.f.y); const fac=Math.max(6,Math.hypot(p.x-c.x,p.y-c.y))/d.startD;
+      d.f.w=Math.max(6,d.startW*fac); d.f.h=Math.max(6,d.startH*fac); render(); syncSizeField(d.f); }
+  else if(d.type==="rotate"){ let r=d.startRot+(angleTo(d.f,p)-d.startA); if(e.shiftKey) r=Math.round(r/15)*15; d.f.rot=((r%360)+360)%360; render(); syncRotField(d.f); }
+  else if(d.type==="scale"||d.type==="measure"){ d.b=s2w(p.x,p.y); render(); }
+},{passive:false});
+
+function endPointer(e){
+  pointers.delete(e.pointerId);
+  if(pointers.size<2) pinch=null;
+  if(pointers.size>0){ if(_drag && _drag.type!=="scale"&&_drag.type!=="measure") _drag=null; return; }
+  stage.classList.remove("grabbing");
+  if(!_drag) return;
+  const d=_drag; _drag=null;
+  if(d.type==="scale"){ finishScale(d); }
+  else if(d.type==="measure"){ /* leave drawn until next */ ST._lastMeasure=d; }
+  else if(d.type==="move"||d.type==="resize"||d.type==="rotate"){ autosave(); }
+  render();
+}
+cv.addEventListener("pointerup",endPointer);
+cv.addEventListener("pointercancel",endPointer);
+
+function dist(a,b){ return Math.hypot(a.x-b.x,a.y-b.y); }
+function mid(a,b){ return {x:(a.x+b.x)/2,y:(a.y+b.y)/2}; }
+function angleTo(f,p){ const c=w2s(f.x,f.y); return Math.atan2(p.y-c.y,p.x-c.x)*180/Math.PI; }
+function zoomAt(sx,sy,fac){
+  const wp=s2w(sx,sy); let z=ST.view.zoom*fac; z=Math.max(0.05,Math.min(12,z));
+  ST.view.zoom=z; ST.view.ox=sx-wp.x*z; ST.view.oy=sy-wp.y*z; updateZoomLabel();
+}
+function updateZoomLabel(){ $("#zoomVal").textContent=Math.round(ST.view.zoom*100)+"%"; }
+
+// desktop wheel zoom / trackpad
+stage.addEventListener("wheel",e=>{
+  e.preventDefault();
+  if(e.ctrlKey){ const p=localPt(e); zoomAt(p.x,p.y, Math.exp(-e.deltaY*0.01)); }
+  else { ST.view.ox-=e.deltaX; ST.view.oy-=e.deltaY; }
+  render();
+},{passive:false});
+
+/* =========================================================================
+   SELECTION / FIXTURES
+   ========================================================================= */
+function select(f,opts){
+  opts=opts||{};
+  ST.sel=f;
+  if(f){ if(opts.toProp && currentTab!=="prop") showTab("prop"); renderProps(); }
+  else { renderProps(); }
+  $("#propBadge").classList.toggle("hidden", !f);
+  if(f) $("#propBadge").textContent="•";
+  $("#stFix").textContent=ST.project.fixtures.length;
+}
+function addFixture(preset, atWorld){
+  const u=planUnit();
+  const f={ id:uid(), pid:preset.id, name:nextName(), shape:preset.shape,
+            k:preset.k, watt:preset.watt, w:preset.u[0]*u, h:preset.u[1]*u, rot:0,
+            x:atWorld.x, y:atWorld.y };
+  snapshot();
+  ST.project.fixtures.push(f); select(f); refresh(); autosave();
+  return f;
+}
+function nextName(){
+  let n=1; const names=new Set(ST.project.fixtures.map(f=>f.name));
+  while(names.has(String(n))) n++; return String(n);
+}
+function deleteFixture(f){ snapshot(); const i=ST.project.fixtures.indexOf(f); if(i>=0)ST.project.fixtures.splice(i,1); if(ST.sel===f)select(null); refresh(); autosave(); }
+function duplicateFixture(f){ const u=planUnit(); snapshot(); const c={...f,id:uid(),x:f.x+u*1.2,y:f.y+u*1.2,name:nextName()}; ST.project.fixtures.push(c); select(c); refresh(); autosave(); }
+
+/* =========================================================================
+   SIDEBAR — LIBRARY
+   ========================================================================= */
+let currentTab="lib";
+function showTab(t){
+  currentTab=t;
+  $("#tabLib").classList.toggle("active",t==="lib");
+  $("#tabProp").classList.toggle("active",t==="prop");
+  $("#libBody").classList.toggle("hidden",t!=="lib");
+  $("#propBody").classList.toggle("hidden",t!=="prop");
+}
+$("#tabLib").onclick=()=>showTab("lib");
+$("#tabProp").onclick=()=>showTab("prop");
+
+function buildLibrary(){
+  const body=$("#libBody");
+  body.innerHTML=`<div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4" stroke-linecap="round"/></svg><input id="libSearch" placeholder="Cerca faro…" spellcheck="false"></div><div id="catList"></div>`;
+  renderCats("");
+  $("#libSearch").addEventListener("input",e=>renderCats(e.target.value.trim().toLowerCase()));
+}
+function renderCats(q){
+  const host=$("#catList"); host.innerHTML="";
+  PRESETS.forEach((g,gi)=>{
+    const items=g.items.filter(p=>!q || p.name.toLowerCase().includes(q));
+    if(!items.length) return;
+    const cat=document.createElement("div"); cat.className="cat"+(q?"":(gi>1?" closed":""));
+    const head=document.createElement("div"); head.className="cat-h";
+    head.innerHTML=`<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg><span>${g.cat}</span><span class="ln"></span>`;
+    head.onclick=()=>cat.classList.toggle("closed");
+    const list=document.createElement("div"); list.className="cat-list";
+    items.forEach(p=>list.appendChild(fixtureCard(p)));
+    cat.appendChild(head); cat.appendChild(list); host.appendChild(cat);
+  });
+  if(!host.children.length) host.innerHTML=`<div style="text-align:center;color:var(--faint);padding:30px 0;font-size:12.5px">Nessun faro trovato</div>`;
+}
+function presetIcon(p,size=26){
+  const c=kelvinCSS(p.k,1), rim="#10131a";
+  const cx=size/2;
+  if(p.shape==="panel"||p.shape==="box"){ const w=size*0.82,h=p.shape==="box"?size*0.6:size*(p.u[1]/p.u[0])*1.1; const hh=Math.max(8,Math.min(size*0.7,h));
+    return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><rect x="${(size-w)/2}" y="${(size-hh)/2}" width="${w}" height="${hh}" rx="3" fill="${c}" stroke="${rim}" stroke-width="1.3"/></svg>`; }
+  if(p.shape==="tube"){ const w=size*0.86,h=size*0.26; return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><rect x="${(size-w)/2}" y="${(size-h)/2}" width="${w}" height="${h}" rx="${h/2}" fill="${c}" stroke="${rim}" stroke-width="1.3"/></svg>`; }
+  if(p.shape==="space"){ const r=size*0.36; return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><circle cx="${cx}" cy="${cx}" r="${r}" fill="${c}" stroke="${rim}" stroke-width="1.3"/><circle cx="${cx}" cy="${cx}" r="${r*0.6}" fill="none" stroke="${rim}" stroke-opacity=".5" stroke-width="1" stroke-dasharray="3 3"/></svg>`; }
+  const r=size*0.32; // spot
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><path d="M${cx} ${cx-r} l${-r*0.34} ${-r*0.5} l${r*0.68} 0 z" fill="${c}" stroke="${rim}" stroke-width="1"/><circle cx="${cx}" cy="${cx}" r="${r}" fill="${c}" stroke="${rim}" stroke-width="1.3"/><circle cx="${cx}" cy="${cx}" r="${r*0.4}" fill="none" stroke="${rim}" stroke-opacity=".5" stroke-width="1.1"/></svg>`;
+}
+function fixtureCard(p){
+  const el=document.createElement("div"); el.className="fcard";
+  const spec = (p.bi?`bicolor · ${p.watt}W`:`${p.k}K · ${p.watt}W`);
+  el.innerHTML=`<div class="ico">${presetIcon(p)}</div><div class="meta"><div class="fn">${p.name}</div><div class="fs">${spec}</div></div><div class="add">+</div>`;
+  el.onclick=()=>{ if(!ST.bgImg){ toast("Carica prima una planimetria"); return; } const c=s2w(stage.clientWidth/2, stage.clientHeight/2); addFixture(p,c); };
+  return el;
+}
+
+/* =========================================================================
+   SIDEBAR — PROPERTIES
+   ========================================================================= */
+function renderProps(){
+  const body=$("#propBody");
+  const f=ST.sel;
+  if(!f){ body.innerHTML=`<div class="prop-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01" stroke-linecap="round"/></svg>Seleziona un faro sulla pianta per modificarne nome, tipologia, Kelvin e potenza.</div>`; return; }
+  const preset=PRESET_MAP[f.pid]||{};
+  const bi=preset.bi;
+  body.innerHTML=`
+    <div class="prophead">
+      <div class="pic">${presetIcon({...preset,k:f.k},36)}</div>
+      <div class="pt"><div class="l1" id="phType">${escAttr(f.type||preset.name||"Faro")}</div><div class="l2" id="phSpec"></div></div>
+    </div>
+    <div class="field"><label>Nome / Numero</label><input type="text" id="pName" value="${escAttr(f.name)}" spellcheck="false"></div>
+    <div class="field"><label>Tipologia</label><input type="text" id="pType" value="${escAttr(f.type||preset.name||'')}" spellcheck="false"></div>
+    <div class="field">
+      <label>Temperatura colore</label>
+      <div class="kelv-bar"></div>
+      <div class="slider-row">
+        <input type="range" id="pKelR" min="${bi?bi[0]:1800}" max="${bi?bi[1]:10000}" step="50" value="${f.k}">
+        <div class="unit-in" style="width:92px"><input type="number" id="pKel" value="${f.k}" step="50"><span class="u">K</span></div>
+        <div class="swatch" id="pSw" style="background:${kelvinCSS(f.k)}"></div>
+      </div>
+      ${bi?'':'<div style="font-size:10.5px;color:var(--faint);margin-top:5px">Faro a temperatura fissa — modificabile comunque</div>'}
+    </div>
+    <div class="field"><label>Potenza</label><div class="unit-in"><input type="number" id="pWatt" value="${f.watt}" step="10"><span class="u">W</span></div></div>
+    <div class="field"><div class="row">
+      <div><label>Rotazione</label><div class="unit-in"><input type="number" id="pRot" value="${Math.round(f.rot)}" step="1"><span class="u">°</span></div></div>
+      <div><label>Dimensione</label><div class="slider-row"><input type="range" id="pSize" min="20" max="400" value="100"></div></div>
+    </div></div>
+    <div class="prop-actions">
+      <button class="btn" id="pDup"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 012-2h8" /></svg>Duplica</button>
+      <button class="btn danger" id="pDel"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" stroke-linecap="round" stroke-linejoin="round"/></svg>Elimina</button>
+    </div>`;
+  updatePhSpec();
+  // bindings
+  const nameI=$("#pName"); nameI.addEventListener("input",()=>{ f.name=nameI.value; render(); autosaveLight(); });
+  nameI.addEventListener("focus",()=>snapOnce());
+  const typeI=$("#pType"); typeI.addEventListener("focus",snapOnce); typeI.addEventListener("input",()=>{ f.type=typeI.value; const h=$("#phType"); if(h)h.textContent=typeI.value; autosaveLight(); });
+  const kelR=$("#pKelR"), kel=$("#pKel"), sw=$("#pSw");
+  function setK(v){ v=Math.round(v); f.k=v; kelR.value=v; kel.value=v; sw.style.background=kelvinCSS(v); render(); updatePhSpec(); autosaveLight(); }
+  kelR.addEventListener("pointerdown",snapOnce); kelR.addEventListener("input",()=>setK(+kelR.value));
+  kel.addEventListener("focus",snapOnce); kel.addEventListener("input",()=>setK(+kel.value||f.k));
+  const watt=$("#pWatt"); watt.addEventListener("focus",snapOnce); watt.addEventListener("input",()=>{ f.watt=+watt.value||0; updatePhSpec(); autosaveLight(); });
+  const rotI=$("#pRot"); rotI.addEventListener("focus",snapOnce); rotI.addEventListener("input",()=>{ f.rot=((+rotI.value%360)+360)%360; render(); autosaveLight(); });
+  const sizeS=$("#pSize"); sizeS._base={w:f.w,h:f.h}; sizeS.addEventListener("pointerdown",()=>{ snapOnce(); sizeS._base={w:f.w/(sizeS.value/100),h:f.h/(sizeS.value/100)}; });
+  sizeS.addEventListener("input",()=>{ const fac=sizeS.value/100; f.w=Math.max(6,sizeS._base.w*fac); f.h=Math.max(6,sizeS._base.h*fac); render(); autosaveLight(); });
+  $("#pDup").onclick=()=>duplicateFixture(f);
+  $("#pDel").onclick=()=>deleteFixture(f);
+  function updatePhSpec(){ $("#phSpec").textContent=`${f.k}K · ${f.watt}W`; }
+}
+let _snappedThisEdit=false;
+function snapOnce(){ if(!_snappedThisEdit){ snapshot(); _snappedThisEdit=true; setTimeout(()=>_snappedThisEdit=false,400);} }
+function autosaveLight(){ autosave(); }
+function syncSizeField(f){ const s=$("#pSize"); if(s){ /* live resize via handle: reset slider base */ } }
+function syncRotField(f){ const r=$("#pRot"); if(r) r.value=Math.round(f.rot); }
+function escAttr(s){ return String(s).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;"); }
+
+/* =========================================================================
+   FILE LOADING — plan (image / pdf)
+   ========================================================================= */
+$("#btnLoad").onclick=$("#btnLoad2").onclick=()=>$("#fileInput").click();
+$("#fileInput").addEventListener("change",async e=>{
+  const file=e.target.files[0]; e.target.value=""; if(!file) return;
+  if(file.type==="application/pdf" || file.name.toLowerCase().endsWith(".pdf")){ await loadPDF(file); }
+  else { await loadImageFile(file); }
+});
+function loadImageFile(file){
+  return new Promise(res=>{
+    const fr=new FileReader();
+    fr.onload=()=>{ setPlan(fr.result); res(); };
+    fr.readAsDataURL(file);
+  });
+}
+function setPlan(dataURL){
+  const img=new Image();
+  img.onload=()=>{
+    ST.bgImg=img; ST.project.plan=dataURL; ST.project.planW=img.naturalWidth; ST.project.planH=img.naturalHeight;
+    $("#empty").classList.add("hidden"); fitView(); autosave();
+  };
+  img.onerror=()=>toast("Immagine non valida");
+  img.src=dataURL;
+}
+async function loadPDF(file){
+  toast("Elaboro il PDF…");
+  try{
+    await ensurePDFjs();
+    const buf=await file.arrayBuffer();
+    const pdf=await window.pdfjsLib.getDocument({data:buf}).promise;
+    let pageNum=1;
+    if(pdf.numPages>1){ const r=prompt(`PDF di ${pdf.numPages} pagine. Quale pagina? (1-${pdf.numPages})`,"1"); pageNum=Math.max(1,Math.min(pdf.numPages,parseInt(r)||1)); }
+    const page=await pdf.getPage(pageNum);
+    let vp=page.getViewport({scale:1}); const target=2200; const scale=Math.min(3, target/Math.max(vp.width,vp.height));
+    vp=page.getViewport({scale});
+    const c=document.createElement("canvas"); c.width=vp.width; c.height=vp.height;
+    await page.render({canvasContext:c.getContext("2d"), viewport:vp}).promise;
+    setPlan(c.toDataURL("image/jpeg",0.92));
+    toast("Planimetria caricata");
+  }catch(err){
+    console.error(err);
+    toast("PDF non caricato — serve rete al primo import, oppure usa un JPEG/PNG");
+  }
+}
+let _pdfLoading=null;
+function ensurePDFjs(){
+  if(window.pdfjsLib) return Promise.resolve();
+  if(_pdfLoading) return _pdfLoading;
+  _pdfLoading=new Promise((res,rej)=>{
+    const s=document.createElement("script");
+    s.src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+    s.onload=()=>{ try{ window.pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"; res(); }catch(e){ rej(e);} };
+    s.onerror=()=>rej(new Error("cdn"));
+    document.head.appendChild(s);
+  });
+  return _pdfLoading;
+}
+
+/* =========================================================================
+   PROJECT — new / open / export
+   ========================================================================= */
+$("#btnNew").onclick=()=>{
+  if(ST.project.fixtures.length || ST.project.plan){ if(!confirm("Creare un nuovo progetto? Le modifiche non esportate andranno perse.")) return; }
+  ST.project=blankProject(); ST.bgImg=null; ST.sel=null; ST.hist=[]; ST.future=[]; saveBlocked=false;
+  $("#projName").value=ST.project.name; $("#empty").classList.remove("hidden");
+  ST.view={ox:60,oy:60,zoom:1}; updateZoomLabel(); refresh(); Store.set(SAVE_KEY, JSON.stringify(ST.project));
+};
+$("#btnOpen").onclick=()=>$("#projInput").click();
+$("#projInput").addEventListener("change",e=>{
+  const file=e.target.files[0]; e.target.value=""; if(!file) return;
+  const fr=new FileReader();
+  fr.onload=()=>{ try{ loadProject(JSON.parse(fr.result)); toast("Progetto aperto"); }catch(err){ toast("File progetto non valido"); } };
+  fr.readAsText(file);
+});
+function loadProject(p){
+  ST.project=Object.assign(blankProject(),p);
+  ST.sel=null; ST.hist=[]; ST.future=[]; saveBlocked=false;
+  $("#projName").value=ST.project.name||"Progetto";
+  ST.view={ox:60,oy:60,zoom:1};
+  if(ST.project.plan){ const img=new Image(); img.onload=()=>{ ST.bgImg=img; $("#empty").classList.add("hidden"); fitView(); }; img.src=ST.project.plan; }
+  else { ST.bgImg=null; $("#empty").classList.remove("hidden"); refresh(); }
+  refresh(); autosave();
+}
+$("#btnExport").onclick=()=>{
+  ST.project.name=$("#projName").value||"progetto";
+  const blob=new Blob([JSON.stringify(ST.project)],{type:"application/json"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+  a.download=(ST.project.name.replace(/[^\w\-]+/g,"_")||"faro")+".faro.json"; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000); toast("Progetto esportato");
+};
+$("#projName").addEventListener("input",()=>{ ST.project.name=$("#projName").value; autosave(); });
+
+/* =========================================================================
+   SCALE / MEASURE
+   ========================================================================= */
+$("#btnScale").onclick=()=>setMode(ST.mode==="scale"?"select":"scale");
+$("#btnMeasure").onclick=()=>setMode(ST.mode==="measure"?"select":"measure");
+function setMode(m){
+  ST.mode=m; select(null);
+  $("#btnScale").classList.toggle("on",m==="scale");
+  $("#btnMeasure").classList.toggle("on",m==="measure");
+  stage.classList.toggle("tool",m!=="select");
+  if(m==="scale") toast("Traccia una distanza nota sulla pianta");
+  else if(m==="measure") toast("Traccia per misurare");
+  render();
+}
+function finishScale(d){
+  const px=Math.hypot(d.b.x-d.a.x,d.b.y-d.a.y);
+  if(px<5){ setMode("select"); return; }
+  const r=prompt("Lunghezza reale di questa linea, in metri:", ST.project.scale?ST.project.scale.meters:"5");
+  const m=parseFloat((r||"").replace(",","."));
+  if(m>0){ snapshot(); ST.project.scale={ a:d.a, b:d.b, meters:m, pxPerM:px/m }; updateScaleStatus(); autosave(); toast("Scala impostata: "+(px/m).toFixed(1)+" px/m"); }
+  setMode("select");
+}
+function updateScaleStatus(){ $("#stScale").textContent = ST.project.scale ? (ST.project.scale.pxPerM.toFixed(0)+" px/m") : "scala non impostata"; }
+
+/* =========================================================================
+   ZOOM / GRID / SIDEBAR controls
+   ========================================================================= */
+$("#zoomIn").onclick=()=>{ zoomAt(W/2,H/2,1.2); render(); };
+$("#zoomOut").onclick=()=>{ zoomAt(W/2,H/2,1/1.2); render(); };
+$("#zoomVal").onclick=fitView;
+function fitView(){
+  if(!ST.bgImg){ ST.view={ox:60,oy:60,zoom:1}; updateZoomLabel(); render(); return; }
+  const pad=0.92; const z=Math.min(W/ST.project.planW, H/ST.project.planH)*pad;
+  ST.view.zoom=z; ST.view.ox=(W-ST.project.planW*z)/2; ST.view.oy=(H-ST.project.planH*z)/2;
+  updateZoomLabel(); render();
+}
+$("#btnGrid").onclick=()=>{ ST.grid=!ST.grid; $("#btnGrid").classList.toggle("on",ST.grid); render(); };
+$("#sideToggle").onclick=()=>{ $("#side").classList.toggle("collapsed"); setTimeout(resize,260); };
+
+/* =========================================================================
+   KEYBOARD
+   ========================================================================= */
+window.addEventListener("keydown",e=>{
+  const typing=/INPUT|TEXTAREA/.test(document.activeElement.tagName);
+  if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==="z"){ e.preventDefault(); e.shiftKey?redo():undo(); return; }
+  if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==="y"){ e.preventDefault(); redo(); return; }
+  if(typing) return;
+  if(e.key==="Escape"){ if(ST.mode!=="select")setMode("select"); else select(null); }
+  if(ST.sel){
+    if(e.key==="Delete"||e.key==="Backspace"){ e.preventDefault(); deleteFixture(ST.sel); }
+    if(e.key==="d"&&(e.metaKey||e.ctrlKey)){ e.preventDefault(); duplicateFixture(ST.sel); }
+    const step=e.shiftKey?planUnit():planUnit()/4;
+    if(e.key==="ArrowLeft"){ e.preventDefault(); snapOnce(); ST.sel.x-=step; render(); autosave(); }
+    if(e.key==="ArrowRight"){ e.preventDefault(); snapOnce(); ST.sel.x+=step; render(); autosave(); }
+    if(e.key==="ArrowUp"){ e.preventDefault(); snapOnce(); ST.sel.y-=step; render(); autosave(); }
+    if(e.key==="ArrowDown"){ e.preventDefault(); snapOnce(); ST.sel.y+=step; render(); autosave(); }
+  }
+});
+
+/* =========================================================================
+   REFRESH / INIT
+   ========================================================================= */
+function refresh(){ $("#stFix").textContent=ST.project.fixtures.length; updateScaleStatus(); updateUndo(); render(); }
+
+function init(){
+  buildLibrary(); renderProps(); updateZoomLabel();
+  // restore autosaved
+  const saved=Store.get(SAVE_KEY);
+  if(saved){ try{ const p=JSON.parse(saved); if(p && (p.fixtures&&p.fixtures.length || p.plan)){ loadProject(p); } }catch(e){} }
+  resize(); refresh();
+  if(!Store.ok) toast("Anteprima: usa Esporta per salvare il progetto");
+}
+window.addEventListener("resize",resize);
+new ResizeObserver(resize).observe(stage);
+init();
+</script>
+</body>
+</html>
