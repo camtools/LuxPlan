@@ -32,8 +32,8 @@
   .app{display:flex; flex-direction:column; height:100%; position:relative;}
 
   /* ---------- top bar ---------- */
-  .bar{height:var(--bar); flex:0 0 auto; display:flex; align-items:center; gap:4px;
-    padding:0 10px; background:linear-gradient(180deg,#1b1e25,#171920);
+  .bar{height:calc(var(--bar) + env(safe-area-inset-top)); flex:0 0 auto; display:flex; align-items:center; gap:4px;
+    padding:env(safe-area-inset-top) calc(10px + env(safe-area-inset-right)) 0 calc(10px + env(safe-area-inset-left)); background:linear-gradient(180deg,#1b1e25,#171920);
     border-bottom:1px solid var(--line); position:relative; z-index:30;}
   .brand{display:flex; align-items:center; padding-right:8px; margin-right:2px; flex:0 0 auto;}
   .brand .name{font-weight:600; letter-spacing:.22em; font-size:14px;}
