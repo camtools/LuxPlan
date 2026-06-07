@@ -254,6 +254,12 @@
   .kelv-bar{height:7px; border-radius:5px; margin:7px 0 9px; background:linear-gradient(90deg,#ff8a2a,#ffd6a0,#fff,#cfe0ff,#9bb8ff);}
   .swatch{width:16px; height:16px; border-radius:5px; border:1px solid var(--line2); flex:0 0 auto;}
 
+  .shape-btns{display:flex; gap:4px; flex-wrap:wrap;}
+  .shape-btn{flex:1; min-width:0; padding:7px 4px; font-size:11px; background:var(--panel2); border:1px solid var(--line); border-radius:7px; color:var(--dim); cursor:pointer; text-align:center; display:flex; flex-direction:column; align-items:center; gap:4px; transition:background .15s,border-color .15s,color .15s;}
+  .shape-btn svg{width:22px; height:22px; opacity:.65;}
+  .shape-btn.active{background:var(--accent-soft); border-color:rgba(244,166,74,.5); color:var(--accent);}
+  .shape-btn.active svg{opacity:1;}
+
   .prop-actions{display:flex; gap:8px; margin-top:18px; padding-top:14px; border-top:1px solid var(--line);}
   .prop-actions .btn{flex:1; justify-content:center;}
   .btn.danger{background:transparent; border-color:rgba(232,101,79,.45); color:var(--danger);}
@@ -460,6 +466,7 @@ const PRESETS = [
     {id:"china", name:"China Ball",       shape:"space", k:3200, watt:1000, u:[3.0,3.0]},
     {id:"prac",  name:"Pratica / lampada",shape:"box",   k:2700, watt:60,   u:[1.5,1.5]},
     {id:"gen",   name:"Proiettore generico",    shape:"box",   bi:[1800,10000], k:5600, watt:1000, u:[2.2,2.2]},
+    {id:"custom",name:"Personalizzato",         shape:"box",   bi:[1800,20000], k:5600, watt:1000, u:[2.5,2.5], custom:true},
   ]},
 ];
 const PRESET_MAP = {};
@@ -1372,13 +1379,23 @@ function renderProps(){
   const f=ST.sel;
   if(!f){body.innerHTML=`<div class="prop-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01" stroke-linecap="round"/></svg>Seleziona un proiettore sulla pianta per modificarne le proprietà.</div>`;return;}
   const preset=PRESET_MAP[f.pid]||{};const bi=preset.bi;
+  const isCustom=f.pid==="custom";
+  const SHAPES=[
+    {id:"panel",label:"Panel",ratio:[3,1],svg:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="8" width="20" height="8" rx="1.5"/><line x1="2.5" y1="10.5" x2="21.5" y2="10.5" stroke-width="2.5" stroke-linecap="round"/></svg>`},
+    {id:"box",  label:"Box",  ratio:[1,1],svg:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5" y="5" width="14" height="14" rx="3"/></svg>`},
+    {id:"tube", label:"Tubo", ratio:[7,1],svg:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="10" width="22" height="4" rx="2"/></svg>`},
+    {id:"spot", label:"Spot", ratio:[1,1],svg:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="15" r="5"/><path d="M9 10L12 4l3 6" stroke-linejoin="round"/><circle cx="12" cy="15" r="2" stroke-opacity=".5" stroke-width="1"/></svg>`},
+    {id:"space",label:"Ball", ratio:[1,1],svg:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4.5" stroke-dasharray="2.5 2.5" stroke-opacity=".6" stroke-width="1"/></svg>`},
+  ];
+  const shapeHTML=isCustom?`<div class="field"><label>Forma</label><div class="shape-btns">${SHAPES.map(s=>`<button class="shape-btn${f.shape===s.id?' active':''}" data-sh="${s.id}">${s.svg}${s.label}</button>`).join("")}</div></div>`:"";
   body.innerHTML=`
     <div class="prophead">
-      <div class="pic">${presetIcon({...preset,k:f.k},36)}</div>
+      <div class="pic" id="phPic">${presetIcon({...preset,shape:f.shape||preset.shape,k:f.k},36)}</div>
       <div class="pt"><div class="l1" id="phType">${escAttr(f.type||preset.name||"Proiettore")}</div><div class="l2" id="phSpec"></div></div>
     </div>
     <div class="field"><label>Nome / Numero</label><input type="text" id="pName" value="${escAttr(f.name)}" spellcheck="false"></div>
     <div class="field"><label>Tipologia</label><input type="text" id="pType" value="${escAttr(f.type||preset.name||'')}" spellcheck="false"></div>
+    ${shapeHTML}
     <div class="field">
       <label>Temperatura colore</label>
       <div class="kelv-bar"></div>
@@ -1402,6 +1419,24 @@ function renderProps(){
   updatePhSpec();
   const nameI=$("#pName");nameI.addEventListener("input",()=>{f.name=nameI.value;render();autosaveLight();});nameI.addEventListener("focus",snapOnce);
   const typeI=$("#pType");typeI.addEventListener("focus",snapOnce);typeI.addEventListener("input",()=>{f.type=typeI.value;const h=$("#phType");if(h)h.textContent=typeI.value;autosaveLight();});
+  if(isCustom){
+    body.querySelectorAll(".shape-btn").forEach(btn=>{
+      btn.addEventListener("click",()=>{
+        snapOnce();
+        const sh=SHAPES.find(s=>s.id===btn.dataset.sh);
+        f.shape=btn.dataset.sh;
+        if(sh){
+          const area=Math.sqrt(f.w*f.h);
+          const rw=sh.ratio[0],rh=sh.ratio[1];
+          f.w=Math.max(6,area*Math.sqrt(rw/rh));
+          f.h=Math.max(6,area*Math.sqrt(rh/rw));
+        }
+        body.querySelectorAll(".shape-btn").forEach(b=>b.classList.toggle("active",b===btn));
+        const pic=$("#phPic");if(pic)pic.innerHTML=presetIcon({...preset,shape:f.shape,k:f.k},36);
+        render();autosaveLight();
+      });
+    });
+  }
   const kelR=$("#pKelR"),kel=$("#pKel"),sw=$("#pSw");
   function setK(v){v=Math.round(v);f.k=v;kelR.value=v;kel.value=v;sw.style.background=kelvinCSS(v);render();updatePhSpec();autosaveLight();}
   kelR.addEventListener("pointerdown",snapOnce);kelR.addEventListener("input",()=>setK(+kelR.value));
