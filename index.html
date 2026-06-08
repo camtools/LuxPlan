@@ -499,6 +499,17 @@ const PRESETS = [
     {id:"ls600c", name:"Aputure LS 600c Pro", shape:"spot", bi:[2300,10000], k:5600, watt:720, u:[2.9,2.9]},
     {id:"ls1200", name:"Aputure LS 1200d Pro",shape:"spot", k:5600, watt:1440, u:[3.4,3.4]},
     {id:"am200",  name:"Aputure amaran 200d", shape:"spot", k:5600, watt:200,  u:[2.0,2.0]},
+    {id:"nl-f60",   name:"Nanlite Forza 60",    shape:"spot", k:5600,              watt:60,  u:[1.8,1.8]},
+    {id:"nl-f60b",  name:"Nanlite Forza 60B",   shape:"spot", bi:[2700,6500],k:5600,watt:60,  u:[1.8,1.8]},
+    {id:"nl-f60c",  name:"Nanlite Forza 60C",   shape:"spot", bi:[1800,20000],k:5600,watt:60, u:[1.9,1.9]},
+    {id:"nl-f150",  name:"Nanlite Forza 150",   shape:"spot", k:5600,              watt:150, u:[2.2,2.2]},
+    {id:"nl-f150b", name:"Nanlite Forza 150B",  shape:"spot", bi:[2700,6500],k:5600,watt:150, u:[2.2,2.2]},
+    {id:"nl-f300",  name:"Nanlite Forza 300",   shape:"spot", k:5600,              watt:300, u:[2.8,2.8]},
+    {id:"nl-f300b", name:"Nanlite Forza 300B",  shape:"spot", bi:[2700,6500],k:5600,watt:300, u:[2.8,2.8]},
+    {id:"nl-f500",  name:"Nanlite Forza 500",   shape:"spot", k:5600,              watt:500, u:[3.2,3.2]},
+    {id:"nl-f500b", name:"Nanlite Forza 500B",  shape:"spot", bi:[2700,6500],k:5600,watt:560, u:[3.2,3.2]},
+    {id:"nl-f720",  name:"Nanlite Forza 720",   shape:"spot", k:5600,              watt:720, u:[3.6,3.6]},
+    {id:"nl-f720b", name:"Nanlite Forza 720B",  shape:"spot", bi:[2700,6500],k:5600,watt:720, u:[3.6,3.6]},
   ]},
   {cat:"Fresnel (tungsteno)", items:[
     {id:"ar300", name:"ARRI 300 Plus",   shape:"spot", k:3200, watt:300,   u:[2.0,2.0]},
@@ -521,6 +532,9 @@ const PRESETS = [
     {id:"helios",name:"Astera Helios Tube",    shape:"tube", bi:[1750,20000], k:5600, watt:25, u:[4.2,0.7]},
     {id:"qr4",   name:"Quasar Rainbow 2 · 4ft",shape:"tube", bi:[2000,6000],  k:5600, watt:55, u:[8.0,0.55]},
     {id:"qr2",   name:"Quasar Rainbow 2 · 2ft",shape:"tube", bi:[2000,6000],  k:5600, watt:28, u:[4.2,0.55]},
+    {id:"nl-pt6",  name:"Nanlite PavoTube II 6C",  shape:"tube", bi:[2700,7500],k:5600,watt:6,  u:[3.0,0.50]},
+    {id:"nl-pt15", name:"Nanlite PavoTube II 15C", shape:"tube", bi:[2700,7500],k:5600,watt:30, u:[5.2,0.60]},
+    {id:"nl-pt30", name:"Nanlite PavoTube II 30C", shape:"tube", bi:[2700,7500],k:5600,watt:60, u:[7.8,0.60]},
   ]},
   {cat:"Soft / Altro", items:[
     {id:"space", name:"Space Light",      shape:"space", k:3200, watt:6000, u:[4.4,4.4]},
@@ -1669,21 +1683,40 @@ $("#btnExportPDF").onclick=async()=>{
 async function exportPDF(plan){
   const{jsPDF}=window.jspdf;
 
-  // Temporarily fit view, capture canvas, restore
+  // Render plan onto a clean white offscreen canvas (no dark background, no margins)
   const savedView={...ST.view};
-  fitView();render();
-  await new Promise(r=>setTimeout(r,80)); // let render settle
-  const imgData=cv.toDataURL("image/jpeg",0.92);
-  ST.view=savedView;render();
+  const savedGrid=ST.grid;
+  ST.grid=false;
+
+  // Set view to fit the plan exactly (zoom=1, ox=0, oy=0) then render
+  const exportZoom=Math.min(W/curPlanW(),H/curPlanH());
+  ST.view={zoom:exportZoom,ox:0,oy:0};
+  render();
+  await new Promise(r=>setTimeout(r,60));
+
+  // Crop plan area from main canvas (DPR-adjusted)
+  const srcX=0, srcY=0;
+  const srcW=Math.round(curPlanW()*exportZoom*DPR);
+  const srcH=Math.round(curPlanH()*exportZoom*DPR);
+
+  const offCanvas=document.createElement("canvas");
+  offCanvas.width=srcW; offCanvas.height=srcH;
+  const offCtx=offCanvas.getContext("2d");
+  offCtx.fillStyle="#ffffff";
+  offCtx.fillRect(0,0,srcW,srcH);
+  offCtx.drawImage(cv,srcX,srcY,srcW,srcH,0,0,srcW,srcH);
+  const imgData=offCanvas.toDataURL("image/jpeg",0.92);
+
+  ST.view=savedView; ST.grid=savedGrid; render();
 
   const landscape=plan.planW>=plan.planH;
   const pdf=new jsPDF({orientation:landscape?"l":"p",unit:"mm",format:"a4"});
   const pgW=pdf.internal.pageSize.getWidth();
   const pgH=pdf.internal.pageSize.getHeight();
 
-  // Page 1: plan image
-  const margin=12;
-  const titleH=14;
+  // Page 1: plan image — fill available area keeping aspect ratio
+  const margin=10;
+  const titleH=12;
   const availW=pgW-margin*2;
   const availH=pgH-margin-titleH-margin;
   const ratio=plan.planW/plan.planH;
