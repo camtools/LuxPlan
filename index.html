@@ -149,6 +149,26 @@
   .plans-drop-foot .btn{width:100%; justify-content:center;}
   .plans-empty{padding:28px 16px; text-align:center; color:var(--faint); font-size:12px; line-height:1.6;}
 
+  /* ---------- save dropdown ---------- */
+  .save-wrap{position:relative;flex:0 0 auto;}
+  .save-drop{position:absolute;top:calc(100% + 6px);right:0;z-index:200;
+    width:234px;background:var(--panel);border:1px solid var(--line2);
+    border-radius:12px;overflow:hidden;
+    box-shadow:0 14px 44px rgba(0,0,0,.55),0 2px 8px rgba(0,0,0,.3);
+    animation:dropIn .15s ease;}
+  .save-drop-head{padding:10px 14px 8px;font-size:10.5px;text-transform:uppercase;
+    letter-spacing:.12em;color:var(--dim);font-weight:600;border-bottom:1px solid var(--line);}
+  .save-opt{display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;
+    transition:background .12s;border-bottom:1px solid var(--line);}
+  .save-opt:last-child{border-bottom:none;}
+  .save-opt:hover{background:var(--panel2);}
+  .save-opt.disabled{opacity:.38;pointer-events:none;}
+  .save-opt-ico{width:28px;height:28px;border-radius:7px;background:rgba(255,255,255,.06);
+    display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+  .save-opt-info{flex:1;min-width:0;}
+  .save-opt-title{font-size:12.5px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .save-opt-sub{font-size:10.5px;color:var(--faint);margin-top:2px;}
+
   /* ---------- main ---------- */
   .main{flex:1 1 auto; display:flex; min-height:0; position:relative;}
   .stage{flex:1 1 auto; position:relative; min-width:0; background:
@@ -233,6 +253,13 @@
 
   .field{margin-bottom:13px;}
   .field>label{display:block; font-size:10.5px; text-transform:uppercase; letter-spacing:.1em; color:var(--dim); margin-bottom:5px; font-weight:600;}
+  .field-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;}
+  .field-hd span{font-size:10.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--dim);font-weight:600;}
+  .pow-sw{background:none;border:none;padding:0;cursor:pointer;display:inline-flex;align-items:center;flex-shrink:0;margin-top: -85px;margin-right: 10px;}
+  .pow-track{display:block;width:32px;height:18px;border-radius:9px;background:#4a4e57;position:relative;transition:background .2s;}
+  .pow-knob{display:block;position:absolute;top:3px;left:3px;width:12px;height:12px;border-radius:50%;background:#c0c4cc;transition:transform .18s,background .18s;}
+  .pow-sw.on .pow-track{background:#27ae74;}
+  .pow-sw.on .pow-knob{transform:translateX(14px);background:#fff;}
   .field input[type=text], .field input[type=number], .field select{
     width:100%; height:34px; background:var(--bg); border:1px solid var(--line); border-radius:7px;
     color:var(--txt); padding:0 10px; font-family:var(--font-ui); font-size:12.5px; outline:none; transition:border-color .15s;}
@@ -246,13 +273,14 @@
   .field .row>div{flex:1;}
   .unit-in{position:relative;}
   .unit-in input{padding-right:30px; font-family:var(--font-mono);}
-  .unit-in .u{position:absolute; right:10px; top:9px; font-family:var(--font-mono); font-size:11px; color:var(--faint); pointer-events:none;}
+  .unit-in .u{position:absolute; right:10px; top:50%; transform:translateY(-50%); font-family:var(--font-mono); font-size:11px; color:var(--faint); pointer-events:none;}
 
   .slider-row{display:flex; align-items:center; gap:10px;}
   input[type=range]{-webkit-appearance:none; appearance:none; height:4px; background:var(--line2); border-radius:4px; flex:1; outline:none;}
   input[type=range]::-webkit-slider-thumb{-webkit-appearance:none; width:16px; height:16px; border-radius:50%; background:var(--accent); cursor:pointer; border:2px solid #1a1206; box-shadow:0 1px 3px rgba(0,0,0,.4);}
   .kelv-bar{height:7px; border-radius:5px; margin:7px 0 9px; background:linear-gradient(90deg,#ff8a2a,#ffd6a0,#fff,#cfe0ff,#9bb8ff);}
-  .swatch{width:16px; height:16px; border-radius:5px; border:1px solid var(--line2); flex:0 0 auto;}
+  .swatch{width:34px; height:22px; border-radius:6px; border:2px solid rgb(0, 0, 0); flex:0 0 auto; cursor:pointer; transition:border-color .15s;}
+  .swatch:hover{border-color:rgba(255,255,255,.6);}
 
   .shape-btns{display:flex; gap:4px; flex-wrap:wrap;}
   .shape-btn{flex:1; min-width:0; padding:7px 4px; font-size:11px; background:var(--panel2); border:1px solid var(--line); border-radius:7px; color:var(--dim); cursor:pointer; text-align:center; display:flex; flex-direction:column; align-items:center; gap:4px; transition:background .15s,border-color .15s,color .15s;}
@@ -364,9 +392,26 @@
       <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke-linejoin="round"/><path d="M14 2v6h6M9 13h6M9 17h3" stroke-linecap="round"/></svg>
       Esporta PDF
     </button>
-    <button class="btn ghost icon" id="btnSave" title="Salva backup dati">
-      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v12m0 0l-4-4m4 4l4-4" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 17v2a2 2 0 002 2h14a2 2 0 002-2v-2" stroke-linecap="round"/></svg>
-    </button>
+    <div class="save-wrap">
+      <button class="btn ghost icon" id="btnSave" title="Salva backup">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v12m0 0l-4-4m4 4l4-4" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 17v2a2 2 0 002 2h14a2 2 0 002-2v-2" stroke-linecap="round"/></svg>
+      </button>
+      <div class="save-drop hidden" id="saveDrop">
+        <div class="save-drop-head">Salva backup</div>
+        <div class="save-opt" id="saveOptTotale">
+          <div class="save-opt-ico"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4" stroke-linecap="round"/></svg></div>
+          <div class="save-opt-info"><div class="save-opt-title">Totale</div><div class="save-opt-sub">Tutti i progetti</div></div>
+        </div>
+        <div class="save-opt" id="saveOptProj">
+          <div class="save-opt-ico"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" stroke-linejoin="round"/></svg></div>
+          <div class="save-opt-info"><div class="save-opt-title" id="saveOptProjName">Progetto</div><div class="save-opt-sub">Solo questo progetto</div></div>
+        </div>
+        <div class="save-opt" id="saveOptPlan">
+          <div class="save-opt-ico"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke-linejoin="round"/><path d="M14 2v6h6" stroke-linecap="round"/></svg></div>
+          <div class="save-opt-info"><div class="save-opt-title" id="saveOptPlanName">Piantina</div><div class="save-opt-sub">Solo questa piantina</div></div>
+        </div>
+      </div>
+    </div>
     <button class="btn ghost icon" id="btnImport" title="Importa backup dati">
       <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" stroke-linejoin="round"/><path d="M12 11v6m0 0l-3-3m3 3l3-3" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
@@ -539,7 +584,7 @@ const PRESETS = [
   {cat:"Soft / Altro", items:[
     {id:"space", name:"Space Light",      shape:"space", k:3200, watt:6000, u:[4.4,4.4]},
     {id:"china", name:"China Ball",       shape:"space", k:3200, watt:1000, u:[3.0,3.0]},
-    {id:"prac",  name:"Pratica / lampada",shape:"box",   k:2700, watt:60,   u:[1.5,1.5]},
+    {id:"prac",  name:"Soft Box",shape:"box", k:2700, watt:60, u:[1.5,1.5], shapes:["box","panel","space"]},
     {id:"gen",   name:"Proiettore generico",    shape:"box",   bi:[1800,10000], k:5600, watt:1000, u:[2.2,2.2]},
     {id:"custom",name:"Personalizzato",         shape:"box",   bi:[1800,20000], k:5600, watt:1000, u:[2.5,2.5], custom:true},
   ]},
@@ -716,20 +761,57 @@ $("#homeImport").onclick=()=>$("#importInput").click();
 /* =========================================================================
    SAVE / IMPORT BACKUP
    ========================================================================= */
-$("#btnSave").onclick=()=>{
+let saveDropOpen=false;
+function closeSaveDrop(){
+  if(!saveDropOpen)return;
+  saveDropOpen=false;
+  $("#saveDrop").classList.add("hidden");
+}
+function openSaveDrop(){
   autosave();
-  const data={v:1,exported:Date.now(),projects:{}};
-  for(let i=0;i<localStorage.length;i++){
-    const k=localStorage.key(i);
-    if(k&&k.startsWith("luxplan."))data.projects[k]=localStorage.getItem(k);
+  $("#saveOptProjName").textContent=ST.project.name||"Progetto";
+  const plan=activePlan();
+  if(plan){
+    $("#saveOptPlanName").textContent=plan.name||"Piantina";
+    $("#saveOptPlan").classList.remove("disabled");
+  }else{
+    $("#saveOptPlanName").textContent="Nessuna piantina";
+    $("#saveOptPlan").classList.add("disabled");
+  }
+  saveDropOpen=true;
+  $("#saveDrop").classList.remove("hidden");
+}
+$("#btnSave").onclick=()=>{saveDropOpen?closeSaveDrop():openSaveDrop();};
+document.addEventListener("pointerdown",e=>{
+  if(!saveDropOpen)return;
+  const wrap=document.querySelector(".save-wrap");
+  if(wrap&&!wrap.contains(e.target))closeSaveDrop();
+});
+function doBackup(type){
+  closeSaveDrop();autosave();
+  const date=new Date().toISOString().slice(0,10);
+  const slug=s=>(s||"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,30)||"backup";
+  let data,filename;
+  if(type==="full"){
+    data={v:1,type:"full",exported:Date.now(),projects:{}};
+    for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith("luxplan."))data.projects[k]=localStorage.getItem(k);}
+    filename=`Totale ${date}.luxplan`;
+  }else if(type==="project"){
+    const raw=Store.get(pKey(ST.project.id));
+    data={v:1,type:"project",exported:Date.now(),project:{key:pKey(ST.project.id),data:raw,name:ST.project.name}};
+    filename=`${ST.project.name||"Progetto"} ${date}.luxplan`;
+  }else{
+    const plan=activePlan();if(!plan){toast("Nessuna piantina attiva");return;}
+    data={v:1,type:"plan",exported:Date.now(),plan:{data:JSON.parse(JSON.stringify(plan)),projectName:ST.project.name}};
+    filename=`${plan.name||"Piantina"} ${date}.luxplan`;
   }
   const blob=new Blob([JSON.stringify(data)],{type:"application/json"});
-  const a=document.createElement("a");
-  a.href=URL.createObjectURL(blob);
-  a.download="luxplan-backup-"+new Date().toISOString().slice(0,10)+".luxplan";
-  a.click();URL.revokeObjectURL(a.href);
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=filename;a.click();URL.revokeObjectURL(a.href);
   toast("Backup salvato");
-};
+}
+$("#saveOptTotale").addEventListener("click",()=>doBackup("full"));
+$("#saveOptProj").addEventListener("click",()=>doBackup("project"));
+$("#saveOptPlan").addEventListener("click",()=>doBackup("plan"));
 $("#btnImport").onclick=()=>$("#importInput").click();
 $("#importInput").addEventListener("change",e=>{
   const file=e.target.files[0];e.target.value="";if(!file)return;
@@ -737,10 +819,29 @@ $("#importInput").addEventListener("change",e=>{
   reader.onload=ev=>{
     try{
       const data=JSON.parse(ev.target.result);
-      if(!data.projects)throw new Error("formato non valido");
-      if(!confirm("Importare il backup? I progetti attuali verranno sovrascritti."))return;
-      Object.entries(data.projects).forEach(([k,v])=>localStorage.setItem(k,v));
-      location.reload();
+      if(data.type==="project"&&data.project){
+        if(!confirm(`Importare il progetto "${data.project.name}"?\nViene aggiunto alla lista progetti.`))return;
+        localStorage.setItem(data.project.key,data.project.data);
+        try{
+          const idx=JSON.parse(localStorage.getItem("luxplan.idx")||"[]");
+          const proj=JSON.parse(data.project.data);
+          const ei=idx.findIndex(p=>p.id===proj.id);
+          if(ei>=0)idx[ei]={id:proj.id,name:proj.name,updated:proj.updated};
+          else idx.push({id:proj.id,name:proj.name,updated:proj.updated});
+          localStorage.setItem("luxplan.idx",JSON.stringify(idx));
+        }catch(e){}
+        location.reload();
+      }else if(data.type==="plan"&&data.plan){
+        if(!confirm(`Importare la piantina "${data.plan.data.name}" nel progetto corrente?`))return;
+        const np={...data.plan.data,id:uid(),name:data.plan.data.name+" (importata)"};
+        ST.project.plans.push(np);
+        autosave();renderPlansPanel();
+        toast("Piantina importata");
+      }else if(data.projects){
+        if(!confirm("Importare il backup totale? I progetti attuali verranno sovrascritti."))return;
+        Object.entries(data.projects).forEach(([k,v])=>localStorage.setItem(k,v));
+        location.reload();
+      }else{throw new Error("formato non valido");}
     }catch(err){toast("File non valido: "+err.message);}
   };
   reader.readAsText(file);
@@ -784,6 +885,7 @@ function drawGrid(){
   ctx.stroke();
 }
 function fixtureColors(f){
+  if(f.on===false)return{fill:"#555860",rim:"#10131a"};
   const k=f.k||5600,base=kelvinRGB(k);
   return{fill:`rgb(${base[0]},${base[1]},${base[2]})`,rim:"#10131a"};
 }
@@ -804,11 +906,22 @@ function drawFixture(f,sel){
   }else if(sh==="tube"){
     rr(-w/2,-h/2,w,h,h/2);ctx.fill();ctx.shadowBlur=0;ctx.stroke();
   }else if(sh==="spot"){
-    const rad=Math.min(w,h)/2;
-    ctx.beginPath();ctx.arc(0,0,rad,0,7);ctx.fill();ctx.shadowBlur=0;ctx.stroke();
-    ctx.beginPath();ctx.moveTo(0,-rad);ctx.lineTo(-rad*0.34,-rad*1.4);ctx.lineTo(rad*0.34,-rad*1.4);ctx.closePath();
-    ctx.fillStyle=col.fill;ctx.fill();ctx.stroke();
-    ctx.beginPath();ctx.arc(0,0,rad*0.4,0,7);ctx.strokeStyle="rgba(16,19,26,.5)";ctx.lineWidth=1.2;ctx.stroke();
+    // portrait body (ratio ~0.79 width:height, from SVG reference)
+    const bw=w*0.62,bh=h*0.78,r2=bw*0.09,bTop=-h/2,bBot=bTop+bh;
+    rr(-bw/2,bTop,bw,bh,r2);ctx.fill();ctx.shadowBlur=0;ctx.stroke();
+    // thick lens top edge
+    ctx.beginPath();ctx.moveTo(-bw/2+r2,bTop);ctx.lineTo(bw/2-r2,bTop);
+    ctx.strokeStyle="rgba(16,19,26,.7)";ctx.lineWidth=Math.max(2,bh*0.08);ctx.lineCap="round";ctx.stroke();
+    // two VERTICAL dividers splitting body into 3 columns
+    ctx.strokeStyle="rgba(16,19,26,.42)";ctx.lineWidth=Math.max(1,bw*0.05);ctx.lineCap="butt";
+    const vTop=bTop+bh*0.06,vBot=bBot-r2/2;
+    ctx.beginPath();ctx.moveTo(-bw/6,vTop);ctx.lineTo(-bw/6,vBot);ctx.stroke();
+    ctx.beginPath();ctx.moveTo( bw/6,vTop);ctx.lineTo( bw/6,vBot);ctx.stroke();
+    // diagonal legs from bottom corners, outward ~34° from vertical
+    ctx.strokeStyle=sel?"#f4a64a":col.rim;ctx.lineWidth=sel?2:1.5;ctx.lineCap="round";
+    const ll=h*0.21,lx=bw/2-r2;
+    ctx.beginPath();ctx.moveTo(-lx,bBot);ctx.lineTo(-lx-ll*0.56,bBot+ll*0.83);ctx.stroke();
+    ctx.beginPath();ctx.moveTo( lx,bBot);ctx.lineTo( lx+ll*0.56,bBot+ll*0.83);ctx.stroke();
   }else if(sh==="space"){
     const rad=Math.min(w,h)/2;
     ctx.beginPath();ctx.arc(0,0,rad,0,7);ctx.fill();ctx.shadowBlur=0;ctx.stroke();
@@ -824,7 +937,7 @@ function drawLabel(text,cx,cy,f){
   ctx.font="600 11px "+getFont();
   const tw=ctx.measureText(text).width,pad=6,w=tw+pad*2,h=18;
   ctx.fillStyle="rgba(14,16,21,.82)";rr(cx-w/2,cy-h/2,w,h,5);ctx.fill();
-  ctx.strokeStyle=kelvinCSS(f.k||5600,.55);ctx.lineWidth=1;ctx.stroke();
+  ctx.strokeStyle=f.on===false?"rgba(100,104,112,.55)":kelvinCSS(f.k||5600,.55);ctx.lineWidth=1;ctx.stroke();
   ctx.fillStyle="#eef0f4";ctx.textAlign="center";ctx.textBaseline="middle";
   ctx.fillText(text,cx,cy+0.5);
   ctx.textAlign="start";ctx.textBaseline="alphabetic";
@@ -1106,6 +1219,10 @@ function renderProjectsPanel(){
       inp.addEventListener("blur",commit);
     });
 
+    const dupPBtn=document.createElement("div");dupPBtn.className="prj-btn";dupPBtn.title="Duplica";
+    dupPBtn.innerHTML=`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 012-2h8" stroke-linecap="round"/></svg>`;
+    dupPBtn.addEventListener("pointerdown",e=>{e.stopPropagation();duplicateProject(entry.id);});
+
     const delBtn=document.createElement("div");delBtn.className="prj-btn del";delBtn.title="Elimina progetto";
     delBtn.innerHTML=`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
     delBtn.addEventListener("pointerdown",e=>{
@@ -1114,7 +1231,7 @@ function renderProjectsPanel(){
       deleteProject(entry.id);
     });
 
-    acts.appendChild(editBtn);acts.appendChild(delBtn);
+    acts.appendChild(dupPBtn);acts.appendChild(editBtn);acts.appendChild(delBtn);
     item.appendChild(ico);item.appendChild(info);item.appendChild(acts);
 
     item.addEventListener("pointerdown",e=>{
@@ -1173,6 +1290,22 @@ function deleteProject(id){
     }
   }
   renderProjectsPanel();
+}
+
+function duplicateProject(id){
+  const data=Store.get(pKey(id));
+  if(!data){toast("Progetto non trovato");return;}
+  try{
+    const copy=JSON.parse(data);
+    copy.id=uid();
+    copy.name=(copy.name||"Progetto")+" (copia)";
+    copy.updated=Date.now();
+    copy.plans.forEach(pl=>pl.id=uid());
+    copy.activePlanId=copy.plans.length?copy.plans[0].id:null;
+    Store.set(pKey(copy.id),JSON.stringify(copy));
+    ST.projList.push({id:copy.id,name:copy.name,updated:copy.updated});
+    saveIndex();renderProjectsPanel();toast("Progetto duplicato");
+  }catch(e){toast("Errore duplicazione");}
 }
 
 function applyProject(raw){
@@ -1269,6 +1402,11 @@ function renderPlansPanel(){
       inp.addEventListener("blur",commit);
     });
 
+    const dupBtn=document.createElement("div");
+    dupBtn.className="pi-btn";dupBtn.title="Duplica";
+    dupBtn.innerHTML=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 012-2h8" stroke-linecap="round"/></svg>`;
+    dupBtn.addEventListener("pointerdown",e=>{e.stopPropagation();duplicatePlan(plan.id);});
+
     const delBtn=document.createElement("div");
     delBtn.className="pi-btn del";delBtn.title="Elimina piantina";
     delBtn.innerHTML=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12" stroke-linecap="round"/></svg>`;
@@ -1278,7 +1416,7 @@ function renderPlansPanel(){
       deletePlan(plan.id);
     });
 
-    acts.appendChild(editBtn);acts.appendChild(delBtn);
+    acts.appendChild(dupBtn);acts.appendChild(editBtn);acts.appendChild(delBtn);
     item.appendChild(dot);item.appendChild(nameEl);item.appendChild(acts);
 
     item.addEventListener("pointerdown",e=>{
@@ -1329,6 +1467,15 @@ function deletePlan(planId){
     }
   }
   renderPlansPanel();autosave();
+}
+
+function duplicatePlan(planId){
+  const idx=ST.project.plans.findIndex(p=>p.id===planId);
+  if(idx<0)return;
+  const copy=JSON.parse(JSON.stringify(ST.project.plans[idx]));
+  copy.id=uid();copy.name=ST.project.plans[idx].name+" (copia)";
+  ST.project.plans.splice(idx+1,0,copy);
+  autosave();renderPlansPanel();toast("Piantina duplicata");
 }
 
 function openAddPlan(){
@@ -1525,8 +1672,9 @@ function presetIcon(p,size=26){
   if(p.shape==="panel"||p.shape==="box"){const w=size*0.82,h=p.shape==="box"?size*0.6:size*(p.u[1]/p.u[0])*1.1;const hh=Math.max(8,Math.min(size*0.7,h));return`<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><rect x="${(size-w)/2}" y="${(size-hh)/2}" width="${w}" height="${hh}" rx="3" fill="${c}" stroke="${rim}" stroke-width="1.3"/></svg>`;}
   if(p.shape==="tube"){const w=size*0.86,h=size*0.26;return`<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><rect x="${(size-w)/2}" y="${(size-h)/2}" width="${w}" height="${h}" rx="${h/2}" fill="${c}" stroke="${rim}" stroke-width="1.3"/></svg>`;}
   if(p.shape==="space"){const r=size*0.36;return`<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><circle cx="${cx}" cy="${cx}" r="${r}" fill="${c}" stroke="${rim}" stroke-width="1.3"/><circle cx="${cx}" cy="${cx}" r="${r*0.6}" fill="none" stroke="${rim}" stroke-opacity=".5" stroke-width="1" stroke-dasharray="3 3"/></svg>`;}
-  const r=size*0.32;
-  return`<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><path d="M${cx} ${cx-r} l${-r*0.34} ${-r*0.5} l${r*0.68} 0 z" fill="${c}" stroke="${rim}" stroke-width="1"/><circle cx="${cx}" cy="${cx}" r="${r}" fill="${c}" stroke="${rim}" stroke-width="1.3"/><circle cx="${cx}" cy="${cx}" r="${r*0.4}" fill="none" stroke="${rim}" stroke-opacity=".5" stroke-width="1.1"/></svg>`;
+  {const bw=size*0.52,bh=size*0.74,bTop=size*0.03,bBot=bTop+bh,r2=bw*0.09,cx2=size/2,ll=size*0.21;
+  const lensW=Math.max(2,bh*0.08),vTop=bTop+bh*0.06,vBot=bBot-r2/2,lx=bw/2-r2;
+  return`<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><rect x="${cx2-bw/2}" y="${bTop}" width="${bw}" height="${bh}" rx="${r2}" fill="${c}" stroke="${rim}" stroke-width="1.3"/><line x1="${cx2-bw/2+r2}" y1="${bTop}" x2="${cx2+bw/2-r2}" y2="${bTop}" stroke="${rim}" stroke-width="${lensW}" stroke-linecap="round"/><line x1="${cx2-bw/6}" y1="${vTop}" x2="${cx2-bw/6}" y2="${vBot}" stroke="${rim}" stroke-opacity=".42" stroke-width="1.2"/><line x1="${cx2+bw/6}" y1="${vTop}" x2="${cx2+bw/6}" y2="${vBot}" stroke="${rim}" stroke-opacity=".42" stroke-width="1.2"/><line x1="${cx2-lx}" y1="${bBot}" x2="${cx2-lx-ll*0.56}" y2="${bBot+ll*0.83}" stroke="${rim}" stroke-width="1.5" stroke-linecap="round"/><line x1="${cx2+lx}" y1="${bBot}" x2="${cx2+lx+ll*0.56}" y2="${bBot+ll*0.83}" stroke="${rim}" stroke-width="1.5" stroke-linecap="round"/></svg>`;}
 }
 function fixtureCard(p){
   const el=document.createElement("div");el.className="fcard";
@@ -1550,19 +1698,25 @@ function renderProps(){
   const preset=PRESET_MAP[f.pid]||{};const bi=preset.bi;
   const isCustom=f.pid==="custom";
   const SHAPES=[
-    {id:"panel",label:"Panel",ratio:[3,1],svg:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="8" width="20" height="8" rx="1.5"/><line x1="2.5" y1="10.5" x2="21.5" y2="10.5" stroke-width="2.5" stroke-linecap="round"/></svg>`},
+    {id:"panel",label:"Rettangle",ratio:[3,1],svg:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="8" width="20" height="8" rx="1.5"/><line x1="2.5" y1="10.5" x2="21.5" y2="10.5" stroke-width="2.5" stroke-linecap="round"/></svg>`},
     {id:"box",  label:"Box",  ratio:[1,1],svg:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5" y="5" width="14" height="14" rx="3"/></svg>`},
     {id:"tube", label:"Tubo", ratio:[7,1],svg:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="10" width="22" height="4" rx="2"/></svg>`},
-    {id:"spot", label:"Spot", ratio:[1,1],svg:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="15" r="5"/><path d="M9 10L12 4l3 6" stroke-linejoin="round"/><circle cx="12" cy="15" r="2" stroke-opacity=".5" stroke-width="1"/></svg>`},
-    {id:"space",label:"Ball", ratio:[1,1],svg:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4.5" stroke-dasharray="2.5 2.5" stroke-opacity=".6" stroke-width="1"/></svg>`},
+    {id:"spot", label:"Spot", ratio:[1,1],svg:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="7" y="1" width="10" height="17" rx="1.5"/><line x1="7.5" y1="1" x2="16.5" y2="1" stroke-width="3" stroke-linecap="round"/><line x1="10.3" y1="2.5" x2="10.3" y2="17" stroke-opacity=".5"/><line x1="13.7" y1="2.5" x2="13.7" y2="17" stroke-opacity=".5"/><line x1="7" y1="18" x2="4.5" y2="23" stroke-linecap="round"/><line x1="17" y1="18" x2="19.5" y2="23" stroke-linecap="round"/></svg>`},
+    {id:"space",label:"Circle", ratio:[1,1],svg:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4.5" stroke-dasharray="2.5 2.5" stroke-opacity=".6" stroke-width="1"/></svg>`},
   ];
-  const shapeHTML=isCustom?`<div class="field"><label>Forma</label><div class="shape-btns">${SHAPES.map(s=>`<button class="shape-btn${f.shape===s.id?' active':''}" data-sh="${s.id}">${s.svg}${s.label}</button>`).join("")}</div></div>`:"";
+  const allowedShapes=isCustom?null:(preset.shapes||null);
+  const shapesToShow=isCustom?SHAPES:allowedShapes?SHAPES.filter(s=>allowedShapes.includes(s.id)):null;
+  const shapeHTML=shapesToShow?`<div class="field"><label>Forma</label><div class="shape-btns">${shapesToShow.map(s=>`<button class="shape-btn${f.shape===s.id?' active':''}" data-sh="${s.id}">${s.svg}${s.label}</button>`).join("")}</div></div>`:"";
+
   body.innerHTML=`
     <div class="prophead">
       <div class="pic" id="phPic">${presetIcon({...preset,shape:f.shape||preset.shape,k:f.k},36)}</div>
       <div class="pt"><div class="l1" id="phType">${escAttr(f.type||preset.name||"Proiettore")}</div><div class="l2" id="phSpec"></div></div>
     </div>
-    <div class="field"><label>Nome / Numero</label><input type="text" id="pName" value="${escAttr(f.name)}" spellcheck="false"></div>
+    <div class="field">
+      <div class="field-hd"><span>Nome / Numero</span><button class="pow-sw${f.on===false?'':' on'}" id="pPow" title="${f.on===false?'Accendi':'Spegni'}"><span class="pow-track"><span class="pow-knob"></span></span></button></div>
+      <input type="text" id="pName" value="${escAttr(f.name)}" spellcheck="false">
+    </div>
     <div class="field"><label>Tipologia</label><input type="text" id="pType" value="${escAttr(f.type||preset.name||'')}" spellcheck="false"></div>
     ${shapeHTML}
     <div class="field">
@@ -1570,8 +1724,8 @@ function renderProps(){
       <div class="kelv-bar"></div>
       <div class="slider-row">
         <input type="range" id="pKelR" min="${bi?bi[0]:1800}" max="${bi?bi[1]:10000}" step="50" value="${f.k}">
-        <div class="unit-in" style="width:92px"><input type="number" id="pKel" value="${f.k}" step="50"><span class="u">K</span></div>
-        <div class="swatch" id="pSw" style="background:${kelvinCSS(f.k)}"></div>
+        <div class="unit-in" style="width:68px"><input type="number" id="pKel" value="${f.k}" step="50"><span class="u">K</span></div>
+        <button class="swatch" id="pSw" style="background:${kelvinCSS(f.k)}" title="Preset Kelvin"></button>
       </div>
       ${bi?'':'<div style="font-size:10.5px;color:var(--faint);margin-top:5px">Temperatura fissa — modificabile comunque</div>'}
     </div>
@@ -1587,8 +1741,9 @@ function renderProps(){
     </div>`;
   updatePhSpec();
   const nameI=$("#pName");nameI.addEventListener("input",()=>{f.name=nameI.value;render();autosaveLight();});nameI.addEventListener("focus",snapOnce);
+  const powBtn=$("#pPow");if(powBtn){powBtn.addEventListener("click",()=>{snapOnce();f.on=f.on===false;powBtn.classList.toggle("on",f.on!==false);powBtn.title=f.on===false?"Accendi":"Spegni";render();autosaveLight();});}
   const typeI=$("#pType");typeI.addEventListener("focus",snapOnce);typeI.addEventListener("input",()=>{f.type=typeI.value;const h=$("#phType");if(h)h.textContent=typeI.value;autosaveLight();});
-  if(isCustom){
+  if(shapesToShow){
     body.querySelectorAll(".shape-btn").forEach(btn=>{
       btn.addEventListener("click",()=>{
         snapOnce();
@@ -1607,9 +1762,18 @@ function renderProps(){
     });
   }
   const kelR=$("#pKelR"),kel=$("#pKel"),sw=$("#pSw");
-  function setK(v){v=Math.round(v);f.k=v;kelR.value=v;kel.value=v;sw.style.background=kelvinCSS(v);render();updatePhSpec();autosaveLight();}
+  const K_PRESETS=[2800,3000,3200,3500,4000,4500,5000,5600,6000];
+  function setK(v){v=Math.round(v);f.k=v;kelR.value=v;kel.value=v;sw.style.background=kelvinCSS(v);const sk=sw.querySelector(".sw-k");if(sk)sk.textContent=v+"K";render();updatePhSpec();autosaveLight();}
   kelR.addEventListener("pointerdown",snapOnce);kelR.addEventListener("input",()=>setK(+kelR.value));
   kel.addEventListener("focus",snapOnce);kel.addEventListener("input",()=>setK(+kel.value||f.k));
+  sw.addEventListener("click",()=>{
+    snapOnce();
+    const cur=f.k;
+    let idx=K_PRESETS.indexOf(cur);
+    if(idx===-1){idx=K_PRESETS.findIndex(k=>k>cur);if(idx===-1)idx=0;}
+    else{idx=(idx+1)%K_PRESETS.length;}
+    setK(K_PRESETS[idx]);
+  });
   const watt=$("#pWatt");watt.addEventListener("focus",snapOnce);watt.addEventListener("input",()=>{f.watt=+watt.value||0;updatePhSpec();autosaveLight();});
   const rotI=$("#pRot");rotI.addEventListener("focus",snapOnce);rotI.addEventListener("input",()=>{f.rot=((+rotI.value%360)+360)%360;render();autosaveLight();});
   const noteA=$("#pNote");noteA.addEventListener("focus",snapOnce);noteA.addEventListener("input",()=>{f.note=noteA.value;autosaveLight();});
