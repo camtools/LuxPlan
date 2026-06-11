@@ -278,9 +278,13 @@
   .slider-row{display:flex; align-items:center; gap:10px;}
   input[type=range]{-webkit-appearance:none; appearance:none; height:4px; background:var(--line2); border-radius:4px; flex:1; outline:none;}
   input[type=range]::-webkit-slider-thumb{-webkit-appearance:none; width:16px; height:16px; border-radius:50%; background:var(--accent); cursor:pointer; border:2px solid #1a1206; box-shadow:0 1px 3px rgba(0,0,0,.4);}
-  .kelv-bar{height:7px; border-radius:5px; margin:7px 0 9px; background:linear-gradient(90deg,#ff8a2a,#ffd6a0,#fff,#cfe0ff,#9bb8ff);}
-  .swatch{width:34px; height:22px; border-radius:6px; border:2px solid rgb(0, 0, 0); flex:0 0 auto; cursor:pointer; transition:border-color .15s;}
-  .swatch:hover{border-color:rgba(255,255,255,.6);}
+  .kelv-bar{position:relative; height:7px; border-radius:5px; margin:7px 0 13px; background:linear-gradient(90deg,#ff8a2a,#ffd6a0,#fff,#cfe0ff,#9bb8ff);}
+  .kelv-dot{position:absolute; top:50%; width:14px; height:14px; border-radius:50%; background:#fff; border:2px solid #1a1206; box-shadow:0 1px 3px rgba(0,0,0,.4); transform:translate(-50%,-50%); cursor:grab; touch-action:none;}
+  .kelv-dot:active{cursor:grabbing;}
+  .kel-presets{display:flex; gap:6px; flex:1;}
+  .kel-preset{flex:1; height:34px; min-width:0; padding:0; border-radius:7px; border:2px solid transparent; cursor:pointer; transition:border-color .15s,transform .1s; font-family:var(--font-mono); font-size:11px; font-weight:700; color:#1a1206;}
+  .kel-preset:hover{transform:translateY(-1px);}
+  .kel-preset.active{border-color:var(--accent);}
 
   .shape-btns{display:flex; gap:4px; flex-wrap:wrap;}
   .shape-btn{flex:1; min-width:0; padding:7px 4px; font-size:11px; background:var(--panel2); border:1px solid var(--line); border-radius:7px; color:var(--dim); cursor:pointer; text-align:center; display:flex; flex-direction:column; align-items:center; gap:4px; transition:background .15s,border-color .15s,color .15s;}
@@ -290,6 +294,11 @@
 
   .prop-actions{display:flex; gap:8px; margin-top:18px; padding-top:14px; border-top:1px solid var(--line);}
   .prop-actions .btn{flex:1; justify-content:center;}
+  .note-pic{border-radius:8px; border:1px solid rgba(0,0,0,.15);}
+  .note-colors{display:flex; gap:8px;}
+  .note-color{width:30px; height:30px; border-radius:50%; border:2px solid transparent; cursor:pointer; transition:border-color .15s,transform .1s; box-shadow:inset 0 0 0 1px rgba(0,0,0,.12);}
+  .note-color:hover{transform:translateY(-1px);}
+  .note-color.active{border-color:var(--accent);}
   .btn.danger{background:transparent; border-color:rgba(232,101,79,.45); color:var(--danger);}
   .btn.danger:hover{background:rgba(232,101,79,.12);}
 
@@ -437,8 +446,10 @@
     <button class="btn ghost icon" id="btnUndo" title="Annulla (⌘Z)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 7L4 12l5 5M4 12h11a5 5 0 010 10h-1" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
     <button class="btn ghost icon" id="btnRedo" title="Ripeti (⇧⌘Z)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M15 7l5 5-5 5M20 12H9a5 5 0 000 10h1" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
     <div class="sep"></div>
+    <button class="btn ghost icon" id="btnNote" title="Aggiungi nota"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 4h13l3 3v13H4z"/><path d="M17 4v3h3"/><line x1="8" y1="10" x2="15" y2="10"/><line x1="8" y1="14" x2="13" y2="14"/></svg></button>
     <button class="btn ghost icon" id="btnGrid" title="Griglia"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg></button>
-    <button class="btn ghost" id="btnScale"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 17L17 3l4 4L7 21z M7 13l2 2M11 9l2 2M15 5l2 2" stroke-linecap="round" stroke-linejoin="round"/></svg>Scala</button>
+    <div class="sep"></div>
+    <button class="btn ghost icon" id="btnScale" title="Scala"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 17L17 3l4 4L7 21z M7 13l2 2M11 9l2 2M15 5l2 2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
     <button class="btn ghost icon" id="btnClearScale" title="Cancella scala" disabled><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12" stroke-linecap="round"/></svg></button>
     <button class="btn ghost icon" id="btnMeasure" title="Misura distanza"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 12h16M4 12l3-3M4 12l3 3M20 12l-3-3M20 12l-3 3" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
     <div class="sep"></div>
@@ -489,8 +500,6 @@
         <span><b id="stFix">0</b> proiettori fissati</span>
         <span class="dot"></span>
         <span id="stScale">scala non impostata</span>
-        <span class="dot"></span>
-        <span id="stPos">—</span>
       </div>
       <div class="toast" id="toast"></div>
     </div>
@@ -520,6 +529,7 @@
 
 <script>
 "use strict";
+if("serviceWorker"in navigator)navigator.serviceWorker.register("sw.js");
 /* =========================================================================
    LuxPlan · piano luci
    ========================================================================= */
@@ -608,7 +618,7 @@ function uid(){return Math.random().toString(36).slice(2,9);}
 
 function blankPlan(name){
   return{id:uid(), name:name||"Piantina 1", plan:null, planOrig:null,
-         planW:0, planH:0, planRot:0, scale:null, fixtures:[]};
+         planW:0, planH:0, planRot:0, scale:null, fixtures:[], notes:[]};
 }
 function blankProject(){
   return{id:uid(), name:"Nuovo progetto", plans:[], activePlanId:null, v:2, updated:Date.now()};
@@ -618,6 +628,7 @@ function activePlan(){
   return ST.project.plans.find(p=>p.id===ST.project.activePlanId)||null;
 }
 function curFixtures(){const p=activePlan(); return p?p.fixtures:[];}
+function curNotes(){const p=activePlan(); if(!p)return[]; if(!p.notes)p.notes=[]; return p.notes;}
 function curScale(){const p=activePlan(); return p?p.scale:null;}
 function curPlanW(){const p=activePlan(); return p?p.planW:0;}
 function curPlanH(){const p=activePlan(); return p?p.planH:0;}
@@ -686,16 +697,16 @@ function planUnit(){const w=curPlanW(),h=curPlanH();return w?Math.max(8,Math.max
 /* ---------------- History ---------------- */
 function snapshot(){
   const p=activePlan(); if(!p)return;
-  ST.hist.push(JSON.stringify({fixtures:p.fixtures,scale:p.scale}));
+  ST.hist.push(JSON.stringify({fixtures:p.fixtures,notes:p.notes||[],scale:p.scale}));
   if(ST.hist.length>60)ST.hist.shift();
   ST.future.length=0;updateUndo();
 }
 function applySnap(s){
   const p=activePlan(); if(!p)return;
-  const o=JSON.parse(s);p.fixtures=o.fixtures;p.scale=o.scale;
+  const o=JSON.parse(s);p.fixtures=o.fixtures;p.notes=o.notes||[];p.scale=o.scale;
 }
-function undo(){if(!ST.hist.length)return;const p=activePlan();if(!p)return;ST.future.push(JSON.stringify({fixtures:p.fixtures,scale:p.scale}));applySnap(ST.hist.pop());ST.sel=null;updateUndo();refresh();autosave();}
-function redo(){if(!ST.future.length)return;const p=activePlan();if(!p)return;ST.hist.push(JSON.stringify({fixtures:p.fixtures,scale:p.scale}));applySnap(ST.future.pop());ST.sel=null;updateUndo();refresh();autosave();}
+function undo(){if(!ST.hist.length)return;const p=activePlan();if(!p)return;ST.future.push(JSON.stringify({fixtures:p.fixtures,notes:p.notes||[],scale:p.scale}));applySnap(ST.hist.pop());ST.sel=null;updateUndo();refresh();autosave();}
+function redo(){if(!ST.future.length)return;const p=activePlan();if(!p)return;ST.hist.push(JSON.stringify({fixtures:p.fixtures,notes:p.notes||[],scale:p.scale}));applySnap(ST.future.pop());ST.sel=null;updateUndo();refresh();autosave();}
 function updateUndo(){$("#btnUndo").disabled=!ST.hist.length;$("#btnRedo").disabled=!ST.future.length;}
 $("#btnUndo").onclick=()=>undo();
 $("#btnRedo").onclick=()=>redo();
@@ -868,7 +879,11 @@ function render(){
   if(!ST.bgImg)return;
   const fxs=curFixtures();
   for(const f of fxs)drawFixture(f,f===ST.sel);
-  if(ST.sel&&fxs.includes(ST.sel))drawHandles(ST.sel);
+  for(const n of curNotes())drawNote(n,n===ST.sel);
+  if(ST.sel){
+    if(ST.sel.type==="note")drawNoteHandles(ST.sel);
+    else if(fxs.includes(ST.sel))drawHandles(ST.sel);
+  }
   const sc=curScale();
   if(sc)drawScaleLine(sc);
   if(_drag&&(_drag.type==="scale"||_drag.type==="measure"))drawTempLine(_drag);
@@ -932,6 +947,54 @@ function drawFixture(f,sel){
   drawLabel(f.name||"",s.x,s.y+half+13,f);
 }
 function rr(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+function drawNote(n,sel){
+  const z=ST.view.zoom,s=w2s(n.x,n.y);
+  const w=Math.max(4,n.w*z),h=Math.max(4,n.h*z);
+  ctx.save();
+  ctx.translate(s.x,s.y);
+  ctx.shadowColor="rgba(0,0,0,.35)";ctx.shadowBlur=sel?10:6;ctx.shadowOffsetY=3;
+  ctx.fillStyle=NOTE_COLORS[n.color]||NOTE_COLORS.yellow;
+  ctx.strokeStyle=sel?"#f4a64a":"rgba(0,0,0,.15)";ctx.lineWidth=sel?2:1;
+  rr(-w/2,-h/2,w,h,6);ctx.fill();ctx.shadowBlur=0;ctx.stroke();
+  if(n.text){
+    const pad=10;
+    ctx.save();
+    rr(-w/2,-h/2,w,h,6);ctx.clip();
+    ctx.fillStyle=n.color==="black"?"rgba(255,255,255,.92)":"rgba(26,18,6,.82)";
+    ctx.font="500 12px "+getFont();
+    ctx.textBaseline="top";
+    const lines=wrapNoteText(n.text,w-pad*2);
+    let ty=-h/2+pad;
+    for(const line of lines){
+      if(ty>h/2-pad)break;
+      ctx.fillText(line,-w/2+pad,ty);
+      ty+=15;
+    }
+    ctx.restore();
+  }
+  ctx.restore();
+}
+function wrapNoteText(text,maxWidth){
+  const out=[];
+  for(const para of String(text).split("\n")){
+    const words=para.split(/\s+/).filter(Boolean);
+    let cur="";
+    if(!words.length){out.push("");continue;}
+    for(const word of words){
+      const test=cur?cur+" "+word:word;
+      if(ctx.measureText(test).width>maxWidth&&cur){out.push(cur);cur=word;}
+      else cur=test;
+    }
+    if(cur)out.push(cur);
+  }
+  return out;
+}
+function drawNoteHandles(n){
+  const cs=corners(n);
+  ctx.strokeStyle="rgba(244,166,74,.85)";ctx.lineWidth=1.4;ctx.setLineDash([5,4]);
+  ctx.beginPath();ctx.moveTo(cs[0].x,cs[0].y);for(let i=1;i<4;i++)ctx.lineTo(cs[i].x,cs[i].y);ctx.closePath();ctx.stroke();ctx.setLineDash([]);
+  handleDot(cs[2].x,cs[2].y,"size");
+}
 function drawLabel(text,cx,cy,f){
   if(!text)return;
   ctx.font="600 11px "+getFont();
@@ -1022,6 +1085,20 @@ function hitHandle(f,sx,sy){
   const cs=corners(f);if(Math.hypot(sx-cs[2].x,sy-cs[2].y)<=13)return"size";
   return null;
 }
+function hitNote(sx,sy){
+  const notes=curNotes();
+  for(let i=notes.length-1;i>=0;i--){
+    const n=notes[i];
+    const wp=s2w(sx,sy);
+    if(Math.abs(wp.x-n.x)<=n.w/2&&Math.abs(wp.y-n.y)<=n.h/2)return n;
+  }
+  return null;
+}
+function hitNoteHandle(n,sx,sy){
+  if(!n)return null;
+  const cs=corners(n);if(Math.hypot(sx-cs[2].x,sy-cs[2].y)<=13)return"size";
+  return null;
+}
 
 /* =========================================================================
    POINTER / GESTURES
@@ -1043,12 +1120,20 @@ cv.addEventListener("pointerdown",e=>{
   if(ST.mode==="scale"||ST.mode==="measure"){
     _drag={type:ST.mode,a:s2w(p.x,p.y),b:s2w(p.x,p.y)};render();return;
   }
-  const hh=hitHandle(ST.sel,p.x,p.y);
+  const selIsNote=ST.sel&&ST.sel.type==="note";
+  const hh=selIsNote?hitNoteHandle(ST.sel,p.x,p.y):hitHandle(ST.sel,p.x,p.y);
   if(hh){
     snapshot();
     if(hh==="rot"){_drag={type:"rotate",f:ST.sel,startRot:ST.sel.rot,startA:angleTo(ST.sel,p)};}
     else{const c=w2s(ST.sel.x,ST.sel.y);_drag={type:"resize",f:ST.sel,startW:ST.sel.w,startH:ST.sel.h,startD:Math.max(6,Math.hypot(p.x-c.x,p.y-c.y))};}
     stage.classList.add("grabbing");return;
+  }
+  const n=hitNote(p.x,p.y);
+  if(n){
+    select(n,{toProp:true});snapshot();
+    const wp=s2w(p.x,p.y);
+    _drag={type:"move",f:n,dx:n.x-wp.x,dy:n.y-wp.y,moved:false};
+    stage.classList.add("grabbing");render();return;
   }
   const f=hitFixture(p.x,p.y);
   if(f){
@@ -1067,7 +1152,6 @@ cv.addEventListener("pointerdown",e=>{
 cv.addEventListener("pointermove",e=>{
   const p=localPt(e);
   if(pointers.has(e.pointerId))pointers.set(e.pointerId,p);
-  if(ST.bgImg){const wp=s2w(p.x,p.y);$("#stPos").textContent=`${Math.round(wp.x)}, ${Math.round(wp.y)}`;}
   if(pinch&&pointers.size>=2){
     const pts=[...pointers.values()];const nd=dist2(pts[0],pts[1]),nm=mid2(pts[0],pts[1]);
     if(pinch.d>0)zoomAt(nm.x,nm.y,nd/pinch.d);
@@ -1150,6 +1234,30 @@ function duplicateFixture(f){
   const u=planUnit();snapshot();
   const c={...f,id:uid(),x:f.x+u*1.2,y:f.y+u*1.2,name:nextName()};
   plan.fixtures.push(c);select(c);refresh();autosave();
+}
+
+/* ---------------- Notes ---------------- */
+const NOTE_COLORS={
+  yellow:"#fff27a",
+  green:"#b9f2a8",
+  blue:"#a8d4f2",
+  white:"#f5f5f0",
+  pink:"#f7b6d2",
+  black:"#2a2a2a",
+};
+function addNote(atWorld){
+  const plan=activePlan();if(!plan)return null;
+  const u=planUnit();
+  const n={id:uid(),type:"note",x:atWorld.x,y:atWorld.y,w:u*4,h:u*4,rot:0,text:"",color:"yellow"};
+  snapshot();curNotes().push(n);select(n,{toProp:true});refresh();autosave();
+  return n;
+}
+function deleteNote(n){
+  const plan=activePlan();if(!plan)return;
+  snapshot();const notes=curNotes();const i=notes.indexOf(n);
+  if(i>=0)notes.splice(i,1);
+  if(ST.sel===n)select(null);
+  refresh();autosave();
 }
 
 /* =========================================================================
@@ -1691,10 +1799,45 @@ function fixtureCard(p){
 /* =========================================================================
    SIDEBAR — PROPERTIES
    ========================================================================= */
+function renderNoteProps(body,n){
+  const NOTE_COLOR_NAMES={yellow:"Giallo",green:"Verde",blue:"Blu",white:"Bianco",pink:"Rosa",black:"Nero"};
+  body.innerHTML=`
+    <div class="prophead">
+      <div class="pic note-pic" style="background:${NOTE_COLORS[n.color]||NOTE_COLORS.yellow}"></div>
+      <div class="pt"><div class="l1">Nota</div></div>
+    </div>
+    <div class="field">
+      <label>Testo</label>
+      <textarea id="pNoteText" placeholder="Scrivi una nota…" spellcheck="false">${escAttr(n.text||"")}</textarea>
+    </div>
+    <div class="field">
+      <label>Colore</label>
+      <div class="note-colors">
+        ${Object.keys(NOTE_COLORS).map(c=>`<button class="note-color${n.color===c?' active':''}" data-c="${c}" style="background:${NOTE_COLORS[c]}" title="${NOTE_COLOR_NAMES[c]}"></button>`).join("")}
+      </div>
+    </div>
+    <div class="prop-actions">
+      <button class="btn danger" id="pNoteDel"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" stroke-linecap="round" stroke-linejoin="round"/></svg>Elimina</button>
+    </div>`;
+  const txt=$("#pNoteText");
+  txt.addEventListener("focus",snapOnce);
+  txt.addEventListener("input",()=>{n.text=txt.value;render();autosaveLight();});
+  body.querySelectorAll(".note-color").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+      snapOnce();
+      n.color=btn.dataset.c;
+      body.querySelectorAll(".note-color").forEach(b=>b.classList.toggle("active",b===btn));
+      $(".note-pic").style.background=NOTE_COLORS[n.color];
+      render();autosaveLight();
+    });
+  });
+  $("#pNoteDel").addEventListener("click",()=>deleteNote(n));
+}
 function renderProps(){
   const body=$("#propBody");
   const f=ST.sel;
   if(!f){body.innerHTML=`<div class="prop-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01" stroke-linecap="round"/></svg>Seleziona un proiettore sulla pianta per modificarne le proprietà.</div>`;return;}
+  if(f.type==="note"){renderNoteProps(body,f);return;}
   const preset=PRESET_MAP[f.pid]||{};const bi=preset.bi;
   const isCustom=f.pid==="custom";
   const SHAPES=[
@@ -1721,13 +1864,14 @@ function renderProps(){
     ${shapeHTML}
     <div class="field">
       <label>Temperatura colore</label>
-      <div class="kelv-bar"></div>
+      <div class="kelv-bar"><span class="kelv-dot" id="pKelDot"></span></div>
       <div class="slider-row">
-        <input type="range" id="pKelR" min="${bi?bi[0]:1800}" max="${bi?bi[1]:10000}" step="50" value="${f.k}">
+        <div class="kel-presets">
+          ${[2800,3200,4000,5600].map(v=>`<button class="kel-preset${f.k===v?' active':''}" data-k="${v}" style="background:${kelvinCSS(v)}">${v}</button>`).join("")}
+        </div>
         <div class="unit-in" style="width:68px"><input type="number" id="pKel" value="${f.k}" step="50"><span class="u">K</span></div>
-        <button class="swatch" id="pSw" style="background:${kelvinCSS(f.k)}" title="Preset Kelvin"></button>
       </div>
-      ${bi?'':'<div style="font-size:10.5px;color:var(--faint);margin-top:5px">Temperatura fissa — modificabile comunque</div>'}
+      
     </div>
     <div class="field"><label>Potenza</label><div class="unit-in"><input type="number" id="pWatt" value="${f.watt}" step="10"><span class="u">W</span></div></div>
     <div class="field"><div class="row">
@@ -1761,18 +1905,28 @@ function renderProps(){
       });
     });
   }
-  const kelR=$("#pKelR"),kel=$("#pKel"),sw=$("#pSw");
-  const K_PRESETS=[2800,3000,3200,3500,4000,4500,5000,5600,6000];
-  function setK(v){v=Math.round(v);f.k=v;kelR.value=v;kel.value=v;sw.style.background=kelvinCSS(v);const sk=sw.querySelector(".sw-k");if(sk)sk.textContent=v+"K";render();updatePhSpec();autosaveLight();}
-  kelR.addEventListener("pointerdown",snapOnce);kelR.addEventListener("input",()=>setK(+kelR.value));
+  const kel=$("#pKel"),kelDot=$("#pKelDot");
+  const KMIN=2000,KMAX=10000;
+  function updateKelDot(v){const pct=Math.min(1,Math.max(0,(v-KMIN)/(KMAX-KMIN)));kelDot.style.left=(pct*100)+"%";}
+  function setK(v){v=Math.round(v);f.k=v;kel.value=v;updateKelDot(v);body.querySelectorAll(".kel-preset").forEach(b=>b.classList.toggle("active",+b.dataset.k===v));render();updatePhSpec();autosaveLight();}
+  updateKelDot(f.k);
   kel.addEventListener("focus",snapOnce);kel.addEventListener("input",()=>setK(+kel.value||f.k));
-  sw.addEventListener("click",()=>{
-    snapOnce();
-    const cur=f.k;
-    let idx=K_PRESETS.indexOf(cur);
-    if(idx===-1){idx=K_PRESETS.findIndex(k=>k>cur);if(idx===-1)idx=0;}
-    else{idx=(idx+1)%K_PRESETS.length;}
-    setK(K_PRESETS[idx]);
+  const kelBar=$(".kelv-bar");
+  kelDot.addEventListener("pointerdown",e=>{
+    e.preventDefault();snapOnce();
+    kelDot.setPointerCapture(e.pointerId);
+    const move=ev=>{
+      const rect=kelBar.getBoundingClientRect();
+      const pct=Math.min(1,Math.max(0,(ev.clientX-rect.left)/rect.width));
+      setK(KMIN+pct*(KMAX-KMIN));
+    };
+    move(e);
+    const up=()=>{kelDot.removeEventListener("pointermove",move);kelDot.removeEventListener("pointerup",up);};
+    kelDot.addEventListener("pointermove",move);
+    kelDot.addEventListener("pointerup",up);
+  });
+  body.querySelectorAll(".kel-preset").forEach(btn=>{
+    btn.addEventListener("click",()=>{snapOnce();setK(+btn.dataset.k);});
   });
   const watt=$("#pWatt");watt.addEventListener("focus",snapOnce);watt.addEventListener("input",()=>{f.watt=+watt.value||0;updatePhSpec();autosaveLight();});
   const rotI=$("#pRot");rotI.addEventListener("focus",snapOnce);rotI.addEventListener("input",()=>{f.rot=((+rotI.value%360)+360)%360;render();autosaveLight();});
@@ -1998,6 +2152,11 @@ function fitView(){
   updateZoomLabel();render();
 }
 $("#btnGrid").onclick=()=>{ST.grid=!ST.grid;$("#btnGrid").classList.toggle("on",ST.grid);render();};
+$("#btnNote").onclick=()=>{
+  if(!ST.bgImg){toast("Carica prima una piantina");return;}
+  const center=s2w(W/2,H/2);
+  addNote(center);
+};
 $("#sideToggle").onclick=()=>{$("#side").classList.toggle("collapsed");setTimeout(resize,260);};
 
 /* =========================================================================
@@ -2010,8 +2169,9 @@ window.addEventListener("keydown",e=>{
   if(typing)return;
   if(e.key==="Escape"){if(ST.mode!=="select")setMode("select");else select(null);}
   if(ST.sel){
-    if(e.key==="Delete"||e.key==="Backspace"){e.preventDefault();deleteFixture(ST.sel);}
-    if(e.key==="d"&&(e.metaKey||e.ctrlKey)){e.preventDefault();duplicateFixture(ST.sel);}
+    const isNote=ST.sel.type==="note";
+    if(e.key==="Delete"||e.key==="Backspace"){e.preventDefault();isNote?deleteNote(ST.sel):deleteFixture(ST.sel);}
+    if(e.key==="d"&&(e.metaKey||e.ctrlKey)){e.preventDefault();if(!isNote)duplicateFixture(ST.sel);}
     const step=e.shiftKey?planUnit():planUnit()/4;
     if(e.key==="ArrowLeft"){e.preventDefault();snapOnce();ST.sel.x-=step;render();autosave();}
     if(e.key==="ArrowRight"){e.preventDefault();snapOnce();ST.sel.x+=step;render();autosave();}
