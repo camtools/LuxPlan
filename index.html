@@ -241,6 +241,22 @@
   .fcard .add{width:22px; height:22px; border-radius:6px; border:1px solid var(--line2); color:var(--dim);
     display:flex; align-items:center; justify-content:center; font-size:15px; flex:0 0 auto; transition:.14s;}
   .fcard:hover .add{border-color:var(--accent); color:var(--accent);}
+  .fcard .del-preset{width:18px; height:18px; border-radius:5px; border:none; background:transparent; color:var(--faint);
+    display:flex; align-items:center; justify-content:center; flex:0 0 auto; cursor:pointer; transition:.14s; font-size:13px; padding:0;}
+  .fcard .del-preset:hover{color:#e05a5a;}
+  .fcard .user-badge{font-size:9px; background:var(--accent); color:#000; border-radius:3px; padding:1px 5px; font-weight:700; letter-spacing:.05em; flex:0 0 auto;}
+
+  /* Save-as-preset modal */
+  .sp-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9000;display:flex;align-items:center;justify-content:center;}
+  .sp-box{background:var(--panel);border:1px solid var(--line2);border-radius:14px;padding:22px 20px;width:290px;box-shadow:0 16px 48px rgba(0,0,0,.6);}
+  .sp-box h3{margin:0 0 16px;font-size:13.5px;font-weight:600;color:var(--txt);}
+  .sp-box label{display:block;font-size:10.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--dim);margin-bottom:5px;}
+  .sp-box input,.sp-box select{width:100%;box-sizing:border-box;background:var(--bg);border:1px solid var(--line2);border-radius:8px;
+    color:var(--txt);font-size:13px;padding:8px 10px;margin-bottom:13px;outline:none;font-family:inherit;}
+  .sp-box input:focus,.sp-box select:focus{border-color:var(--accent);}
+  .sp-box select option{background:var(--panel);}
+  .sp-box .sp-actions{display:flex;gap:8px;margin-top:4px;}
+  .sp-box .sp-actions .btn{flex:1;justify-content:center;}
 
   .prop-empty{padding:48px 16px; text-align:center; color:var(--faint); line-height:1.6;
     display:flex; flex-direction:column; align-items:center; gap:10px;}
@@ -601,6 +617,95 @@ const PRESETS = [
 ];
 const PRESET_MAP = {};
 PRESETS.forEach(g=>g.items.forEach(p=>PRESET_MAP[p.id]=p));
+
+/* ---- Custom user-defined presets ---- */
+const CUSTOM_PRESETS_KEY = "luxplan.custompresets";
+
+function loadCustomPresets(){
+  try{
+    const raw=localStorage.getItem(CUSTOM_PRESETS_KEY);
+    if(!raw)return;
+    const customs=JSON.parse(raw);
+    customs.forEach(cp=>{
+      if(PRESET_MAP[cp.id])return; // already present (no duplicates)
+      PRESET_MAP[cp.id]=cp;
+      const g=PRESETS.find(g=>g.cat===cp.cat);
+      if(g){ g.items.push(cp); }
+      else{
+        let uc=PRESETS.find(g=>g.cat==="Personalizzati");
+        if(!uc){uc={cat:"Personalizzati",items:[]};PRESETS.push(uc);}
+        uc.items.push(cp);
+      }
+    });
+  }catch(e){}
+}
+
+function saveCustomPresetsToStorage(){
+  const customs=[];
+  PRESETS.forEach(g=>g.items.forEach(p=>{if(p.userDefined)customs.push(p);}));
+  localStorage.setItem(CUSTOM_PRESETS_KEY,JSON.stringify(customs));
+}
+
+function deleteCustomPreset(id){
+  if(!confirm("Rimuovere il preset dalla libreria?"))return;
+  PRESETS.forEach(g=>{const i=g.items.findIndex(p=>p.id===id);if(i>=0)g.items.splice(i,1);});
+  // clean up empty user category
+  const ei=PRESETS.findIndex(g=>g.cat==="Personalizzati"&&g.items.length===0);
+  if(ei>=0)PRESETS.splice(ei,1);
+  delete PRESET_MAP[id];
+  saveCustomPresetsToStorage();
+  renderLib();
+}
+
+function openSavePresetDialog(f){
+  const preset=PRESET_MAP[f.pid]||{};
+  const overlay=document.createElement("div");overlay.className="sp-overlay";
+  const cats=PRESETS.map(g=>g.cat).filter(c=>c!=="Soft / Altro");
+  overlay.innerHTML=`
+    <div class="sp-box">
+      <h3>Salva come preset</h3>
+      <label>Nome</label>
+      <input id="spName" type="text" maxlength="48" value="${(f.type||preset.name||"Personalizzato").replace(/"/g,'&quot;')}" spellcheck="false">
+      <label>Categoria</label>
+      <select id="spCat">
+        ${cats.map(c=>`<option value="${c}">${c}</option>`).join("")}
+        <option value="Personalizzati">Personalizzati</option>
+      </select>
+      <div class="sp-actions">
+        <button class="btn ghost" id="spCancel">Annulla</button>
+        <button class="btn" id="spSave">Salva</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  const nameI=overlay.querySelector("#spName");
+  nameI.focus();nameI.select();
+  overlay.querySelector("#spCancel").onclick=()=>overlay.remove();
+  overlay.addEventListener("pointerdown",e=>{if(e.target===overlay)overlay.remove();});
+  overlay.querySelector("#spSave").onclick=()=>{
+    const name=nameI.value.trim();
+    if(!name){nameI.focus();return;}
+    const cat=overlay.querySelector("#spCat").value;
+    const newId="u_"+uid();
+    const cp={
+      id:newId, name, cat,
+      shape:f.shape||preset.shape||"box",
+      k:f.k, watt:f.watt,
+      u:[f.w/40, f.h/40],
+      userDefined:true,
+      ...(preset.bi?{bi:preset.bi}:{})
+    };
+    PRESET_MAP[newId]=cp;
+    let g=PRESETS.find(g=>g.cat===cat);
+    if(!g){g={cat,items:[]};PRESETS.push(g);}
+    g.items.push(cp);
+    saveCustomPresetsToStorage();
+    overlay.remove();
+    renderLib();
+    toast(`Preset "${name}" salvato`);
+  };
+}
+
+loadCustomPresets();
 
 /* ---------------- Kelvin -> RGB ---------------- */
 function kelvinRGB(kelvin){
@@ -1808,12 +1913,20 @@ function presetIcon(p,size=26){
 function fixtureCard(p){
   const el=document.createElement("div");el.className="fcard";
   const spec=p.bi?`bicolor · ${p.watt}W`:`${p.k}K · ${p.watt}W`;
-  el.innerHTML=`<div class="ico">${presetIcon(p)}</div><div class="meta"><div class="fn">${p.name}</div><div class="fs">${spec}</div></div><div class="add">+</div>`;
+  const userBadge=p.userDefined?`<span class="user-badge">TUO</span>`:"";
+  const delBtn=p.userDefined?`<button class="del-preset" title="Rimuovi preset" data-pid="${p.id}">✕</button>`:"";
+  el.innerHTML=`<div class="ico">${presetIcon(p)}</div><div class="meta"><div class="fn">${p.name}</div><div class="fs">${spec}</div></div>${userBadge}<div class="add">+</div>${delBtn}`;
   el.onclick=()=>{
     if(!activePlan()||!ST.bgImg){toast("Aggiungi prima una piantina");return;}
     const c=s2w(stage.clientWidth/2,stage.clientHeight/2);
     addFixture(p,c);
   };
+  if(p.userDefined){
+    el.querySelector(".del-preset").addEventListener("click",e=>{
+      e.stopPropagation();
+      deleteCustomPreset(p.id);
+    });
+  }
   return el;
 }
 
@@ -1903,7 +2016,8 @@ function renderProps(){
     <div class="prop-actions">
       <button class="btn" id="pDup"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 012-2h8"/></svg>Duplica</button>
       <button class="btn danger" id="pDel"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" stroke-linecap="round" stroke-linejoin="round"/></svg>Elimina</button>
-    </div>`;
+    </div>
+    ${isCustom?`<div class="prop-actions" style="margin-top:8px"><button class="btn" id="pSavePreset" style="width:100%;justify-content:center"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z" stroke-linecap="round"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>Salva come preset</button></div>`:""}`;`;
   updatePhSpec();
   const nameI=$("#pName");nameI.addEventListener("input",()=>{f.name=nameI.value;render();autosaveLight();});nameI.addEventListener("focus",snapOnce);
   const powBtn=$("#pPow");if(powBtn){powBtn.addEventListener("click",()=>{snapOnce();f.on=f.on===false;powBtn.classList.toggle("on",f.on!==false);powBtn.title=f.on===false?"Accendi":"Spegni";render();autosaveLight();});}
@@ -1957,6 +2071,7 @@ function renderProps(){
   sizeS.addEventListener("input",()=>{const fac=sizeS.value/100;f.w=Math.max(6,sizeS._base.w*fac);f.h=Math.max(6,sizeS._base.h*fac);render();autosaveLight();});
   $("#pDup").onclick=()=>duplicateFixture(f);
   $("#pDel").onclick=()=>deleteFixture(f);
+  if(isCustom) $("#pSavePreset").onclick=()=>openSavePresetDialog(f);
   function updatePhSpec(){$("#phSpec").textContent=`${f.k}K · ${f.watt}W`;}
 }
 let _snappedThisEdit=false;
