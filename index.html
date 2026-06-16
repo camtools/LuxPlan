@@ -654,7 +654,7 @@ function deleteCustomPreset(id){
   if(ei>=0)PRESETS.splice(ei,1);
   delete PRESET_MAP[id];
   saveCustomPresetsToStorage();
-  renderLib();
+  renderCats("");
 }
 
 function openSavePresetDialog(f){
@@ -700,7 +700,14 @@ function openSavePresetDialog(f){
     g.items.push(cp);
     saveCustomPresetsToStorage();
     overlay.remove();
-    renderLib();
+    renderCats("");
+    // open the target category so the user sees the new preset
+    const allCatHeads=document.querySelectorAll("#catList .cat-h");
+    allCatHeads.forEach(h=>{
+      if(h.querySelector("span")&&h.querySelector("span").textContent===cat){
+        h.closest(".cat").classList.remove("closed");
+      }
+    });
     toast(`Preset "${name}" salvato`);
   };
 }
