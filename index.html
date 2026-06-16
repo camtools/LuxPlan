@@ -657,28 +657,42 @@ const CUR_KEY="luxplan.cur";
 const pKey=id=>`luxplan.p.${id}`;
 
 const Store=(()=>{
-  let ok=false,mem={};
-  try{const k="__lp__";localStorage.setItem(k,"1");localStorage.removeItem(k);ok=true;}catch(e){ok=false;}
+  const DB="luxplan",OS="kv";
+  let db=null;
+  const ready=new Promise((res,rej)=>{
+    const req=indexedDB.open(DB,1);
+    req.onupgradeneeded=e=>{e.target.result.createObjectStore(OS);};
+    req.onsuccess=e=>{db=e.target.result;res();};
+    req.onerror=()=>rej(req.error);
+  }).then(async()=>{
+    // one-time migration from localStorage
+    const lsKeys=[];
+    for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith("luxplan."))lsKeys.push(k);}
+    for(const k of lsKeys){const v=localStorage.getItem(k);if(v!=null)await _set(k,v);localStorage.removeItem(k);}
+  });
+  function _tx(mode){return db.transaction(OS,mode).objectStore(OS);}
+  function _get(k){return new Promise((r,j)=>{const q=_tx("readonly").get(k);q.onsuccess=()=>r(q.result??null);q.onerror=()=>j(q.error);});}
+  function _set(k,v){return new Promise((r,j)=>{const q=_tx("readwrite").put(v,k);q.onsuccess=()=>r();q.onerror=()=>j(q.error);});}
+  function _del(k){return new Promise((r,j)=>{const q=_tx("readwrite").delete(k);q.onsuccess=()=>r();q.onerror=()=>j(q.error);});}
+  function _keys(){return new Promise((r,j)=>{const q=_tx("readonly").getAllKeys();q.onsuccess=()=>r(q.result);q.onerror=()=>j(q.error);});}
   return{
-    ok,
-    get(k){try{return ok?localStorage.getItem(k):mem[k];}catch(e){return mem[k];}},
-    set(k,v){try{ok?localStorage.setItem(k,v):mem[k]=v;return true;}catch(e){ok=false;mem[k]=v;return false;}},
-    del(k){try{ok?localStorage.removeItem(k):delete mem[k];}catch(e){delete mem[k];}}
+    ready,
+    get:(k)=>ready.then(()=>_get(k)),
+    set:(k,v)=>ready.then(()=>_set(k,v)),
+    del:(k)=>ready.then(()=>_del(k)),
+    keys:()=>ready.then(()=>_keys()),
   };
 })();
 
 let saveTimer=null,saveBlocked=false;
 
-function saveIndex(){
-  Store.set(IDX_KEY,JSON.stringify(ST.projList));
-}
+function saveIndex(){Store.set(IDX_KEY,JSON.stringify(ST.projList));}
 function autosave(){
   clearTimeout(saveTimer);
-  saveTimer=setTimeout(()=>{
+  saveTimer=setTimeout(async()=>{
     ST.project.updated=Date.now();
-    const ok=Store.set(pKey(ST.project.id),JSON.stringify(ST.project));
-    if(!ok&&!saveBlocked){saveBlocked=true;toast("Progetto grande: usa Esporta PDF per backup");}
-    // update index entry
+    try{await Store.set(pKey(ST.project.id),JSON.stringify(ST.project));saveBlocked=false;}
+    catch(e){if(!saveBlocked){saveBlocked=true;toast("Errore salvataggio progetto");}}
     const entry={id:ST.project.id,name:ST.project.name,updated:ST.project.updated};
     const idx=ST.projList.findIndex(p=>p.id===ST.project.id);
     if(idx>=0)ST.projList[idx]=entry; else ST.projList.push(entry);
@@ -798,17 +812,17 @@ document.addEventListener("pointerdown",e=>{
   const wrap=document.querySelector(".save-wrap");
   if(wrap&&!wrap.contains(e.target))closeSaveDrop();
 });
-function doBackup(type){
+async function doBackup(type){
   closeSaveDrop();autosave();
   const date=new Date().toISOString().slice(0,10);
-  const slug=s=>(s||"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,30)||"backup";
   let data,filename;
   if(type==="full"){
     data={v:1,type:"full",exported:Date.now(),projects:{}};
-    for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith("luxplan."))data.projects[k]=localStorage.getItem(k);}
+    const allKeys=await Store.keys();
+    for(const k of allKeys.filter(k=>k.startsWith("luxplan.")))data.projects[k]=await Store.get(k);
     filename=`Totale ${date}.luxplan`;
   }else if(type==="project"){
-    const raw=Store.get(pKey(ST.project.id));
+    const raw=await Store.get(pKey(ST.project.id));
     data={v:1,type:"project",exported:Date.now(),project:{key:pKey(ST.project.id),data:raw,name:ST.project.name}};
     filename=`${ST.project.name||"Progetto"} ${date}.luxplan`;
   }else{
@@ -827,19 +841,20 @@ $("#btnImport").onclick=()=>$("#importInput").click();
 $("#importInput").addEventListener("change",e=>{
   const file=e.target.files[0];e.target.value="";if(!file)return;
   const reader=new FileReader();
-  reader.onload=ev=>{
+  reader.onload=async ev=>{
     try{
       const data=JSON.parse(ev.target.result);
       if(data.type==="project"&&data.project){
         if(!confirm(`Importare il progetto "${data.project.name}"?\nViene aggiunto alla lista progetti.`))return;
-        localStorage.setItem(data.project.key,data.project.data);
+        await Store.set(data.project.key,data.project.data);
         try{
-          const idx=JSON.parse(localStorage.getItem("luxplan.idx")||"[]");
+          const idxRaw=await Store.get(IDX_KEY);
+          const idx=JSON.parse(idxRaw||"[]");
           const proj=JSON.parse(data.project.data);
           const ei=idx.findIndex(p=>p.id===proj.id);
           if(ei>=0)idx[ei]={id:proj.id,name:proj.name,updated:proj.updated};
           else idx.push({id:proj.id,name:proj.name,updated:proj.updated});
-          localStorage.setItem("luxplan.idx",JSON.stringify(idx));
+          await Store.set(IDX_KEY,JSON.stringify(idx));
         }catch(e){}
         location.reload();
       }else if(data.type==="plan"&&data.plan){
@@ -850,7 +865,7 @@ $("#importInput").addEventListener("change",e=>{
         toast("Piantina importata");
       }else if(data.projects){
         if(!confirm("Importare il backup totale? I progetti attuali verranno sovrascritti."))return;
-        Object.entries(data.projects).forEach(([k,v])=>localStorage.setItem(k,v));
+        for(const[k,v]of Object.entries(data.projects))await Store.set(k,v);
         location.reload();
       }else{throw new Error("formato non valido");}
     }catch(err){toast("File non valido: "+err.message);}
@@ -1352,8 +1367,8 @@ function renderProjectsPanel(){
   });
 }
 
-function switchProject(id,planId){
-  const data=Store.get(pKey(id));
+async function switchProject(id,planId){
+  const data=await Store.get(pKey(id));
   if(!data){toast("Progetto non trovato");return;}
   try{
     const raw=JSON.parse(data);
@@ -1400,8 +1415,8 @@ function deleteProject(id){
   renderProjectsPanel();
 }
 
-function duplicateProject(id){
-  const data=Store.get(pKey(id));
+async function duplicateProject(id){
+  const data=await Store.get(pKey(id));
   if(!data){toast("Progetto non trovato");return;}
   try{
     const copy=JSON.parse(data);
@@ -2188,37 +2203,36 @@ function refresh(){
   updateScaleStatus();updateUndo();render();
 }
 
-function init(){
+async function init(){
+  await Store.ready;
   buildLibrary();renderProps();updateZoomLabel();
 
   // Load project index
-  try{const raw=Store.get(IDX_KEY);if(raw)ST.projList=JSON.parse(raw);}catch(e){}
+  try{const raw=await Store.get(IDX_KEY);if(raw)ST.projList=JSON.parse(raw);}catch(e){}
 
   // Load active project
   let loaded=false;
-  const curId=Store.get(CUR_KEY);
+  const curId=await Store.get(CUR_KEY);
   if(curId){
-    const data=Store.get(pKey(curId));
+    const data=await Store.get(pKey(curId));
     if(data){try{applyProject(JSON.parse(data));loaded=true;}catch(e){}}
   }
 
-  // Fallback: try old unified key, then legacy proiettore key (migration)
+  // Fallback: legacy key migration
   if(!loaded){
-    let legacy=Store.get("luxplan.current")||Store.get("faro.current");
-    if(legacy){
+    const leg1=await Store.get("luxplan.current");
+    const leg2=leg1||(await Store.get("faro.current"));
+    if(leg2){
       try{
-        const p=JSON.parse(legacy);
+        const p=JSON.parse(leg2);
         if(p&&((p.fixtures&&p.fixtures.length)||p.plan||p.plans)){
-          applyProject(p);
-          // migrate to new per-project storage
-          autosave();
-          loaded=true;
+          applyProject(p);autosave();loaded=true;
         }
       }catch(e){}
     }
   }
 
-  // Nothing saved: show empty state, let user create first project
+  // Nothing saved: show empty state
   if(!loaded){
     ST.bgImg=null;
     $("#curProjLabel").textContent="Progetti";
@@ -2227,7 +2241,6 @@ function init(){
   }
 
   resize();refresh();
-  if(!Store.ok)toast("Anteprima: usa Esporta PDF per salvare il lavoro");
 }
 
 window.addEventListener("resize",resize);
