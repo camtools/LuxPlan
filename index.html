@@ -1345,7 +1345,7 @@ function renderProjectsPanel(){
 
     const dupPBtn=document.createElement("div");dupPBtn.className="prj-btn";dupPBtn.title="Duplica";
     dupPBtn.innerHTML=`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 012-2h8" stroke-linecap="round"/></svg>`;
-    dupPBtn.addEventListener("pointerdown",e=>{e.stopPropagation();duplicateProject(entry.id);});
+    dupPBtn.addEventListener("pointerdown",e=>{e.stopPropagation();if(!confirm(`Duplicare il progetto "${entry.name}"?`))return;duplicateProject(entry.id);});
     dupPBtn.addEventListener("click",e=>e.stopPropagation());
 
     const delBtn=document.createElement("div");delBtn.className="prj-btn del";delBtn.title="Elimina progetto";
@@ -1532,7 +1532,7 @@ function renderPlansPanel(){
     const dupBtn=document.createElement("div");
     dupBtn.className="pi-btn";dupBtn.title="Duplica";
     dupBtn.innerHTML=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 012-2h8" stroke-linecap="round"/></svg>`;
-    dupBtn.addEventListener("pointerdown",e=>{e.stopPropagation();duplicatePlan(plan.id);});
+    dupBtn.addEventListener("pointerdown",e=>{e.stopPropagation();if(!confirm(`Duplicare "${plan.name}"?`))return;duplicatePlan(plan.id);});
     dupBtn.addEventListener("click",e=>e.stopPropagation());
 
     const delBtn=document.createElement("div");
