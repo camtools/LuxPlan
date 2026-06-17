@@ -315,6 +315,10 @@
   .note-color{width:30px; height:30px; border-radius:50%; border:2px solid transparent; cursor:pointer; transition:border-color .15s,transform .1s; box-shadow:inset 0 0 0 1px rgba(0,0,0,.12);}
   .note-color:hover{transform:translateY(-1px);}
   .note-color.active{border-color:var(--accent);}
+  .opacity-row{display:flex;align-items:center;gap:10px;}
+  .opacity-row input[type=range]{flex:1;accent-color:var(--cool);}
+  .opacity-val{font-size:11px;color:var(--dim);min-width:32px;text-align:right;font-family:var(--font-mono);}
+  .ref-thumb{width:100%;height:64px;object-fit:contain;border-radius:6px;background:rgba(255,255,255,.06);border:1px solid var(--line);margin-bottom:4px;}
   .btn.danger{background:transparent; border-color:rgba(232,101,79,.45); color:var(--danger);}
   .btn.danger:hover{background:rgba(232,101,79,.12);}
 
@@ -440,7 +444,11 @@
     <button class="btn ghost icon" id="btnImport" title="Importa backup dati">
       <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" stroke-linejoin="round"/><path d="M12 11v6m0 0l-3-3m3 3l3-3" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
+    <button class="btn ghost icon" id="btnImportRef" title="Importa immagine di riferimento">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 15l5-5 4 4 3-3 5 5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8.5" cy="10" r="1.5" fill="currentColor" stroke="none"/></svg>
+    </button>
     <input type="file" id="importInput" accept=".luxplan,.json" class="hidden">
+    <input type="file" id="refInput" accept=".pdf,.jpg,.jpeg,.png,image/*,application/pdf" class="hidden">
 
     <div class="sep"></div>
 
@@ -730,7 +738,7 @@ function uid(){return Math.random().toString(36).slice(2,9);}
 
 function blankPlan(name){
   return{id:uid(), name:name||"Piantina 1", plan:null, planOrig:null,
-         planW:0, planH:0, planRot:0, scale:null, fixtures:[], notes:[]};
+         planW:0, planH:0, planRot:0, scale:null, fixtures:[], notes:[], refs:[]};
 }
 function blankProject(){
   return{id:uid(), name:"Nuovo progetto", plans:[], activePlanId:null, v:2, updated:Date.now()};
@@ -741,6 +749,7 @@ function activePlan(){
 }
 function curFixtures(){const p=activePlan(); return p?p.fixtures:[];}
 function curNotes(){const p=activePlan(); if(!p)return[]; if(!p.notes)p.notes=[]; return p.notes;}
+function curRefs(){const p=activePlan(); if(!p)return[]; if(!p.refs)p.refs=[]; return p.refs;}
 function curScale(){const p=activePlan(); return p?p.scale:null;}
 function curPlanW(){const p=activePlan(); return p?p.planW:0;}
 function curPlanH(){const p=activePlan(); return p?p.planH:0;}
@@ -821,6 +830,7 @@ function rot(px,py,deg){const a=deg*Math.PI/180,c=Math.cos(a),s=Math.sin(a);retu
 function planUnit(){const w=curPlanW(),h=curPlanH();return w?Math.max(8,Math.max(w,h)/48):22;}
 
 /* ---------------- History ---------------- */
+function _snap(p){return JSON.stringify({fixtures:p.fixtures,notes:p.notes||[],refs:curRefs().map(r=>({...r,src:undefined})),scale:p.scale});}
 function snapshot(){
   const p=activePlan(); if(!p)return;
   ST.hist.push(JSON.stringify({fixtures:p.fixtures,notes:p.notes||[],scale:p.scale}));
@@ -950,6 +960,8 @@ $("#saveOptTotale").addEventListener("click",()=>doBackup("full"));
 $("#saveOptProj").addEventListener("click",()=>doBackup("project"));
 $("#saveOptPlan").addEventListener("click",()=>doBackup("plan"));
 $("#btnImport").onclick=()=>$("#importInput").click();
+$("#btnImportRef").onclick=()=>$("#refInput").click();
+$("#refInput").addEventListener("change",e=>{const f=e.target.files[0];e.target.value="";if(f)loadRefFile(f);});
 $("#importInput").addEventListener("change",e=>{
   const file=e.target.files[0];e.target.value="";if(!file)return;
   const reader=new FileReader();
@@ -1004,11 +1016,13 @@ function render(){
     ctx.drawImage(ST.bgImg,ST.view.ox,ST.view.oy,curPlanW()*z,curPlanH()*z);
   }
   if(!ST.bgImg)return;
+  for(const r of curRefs())drawRef(r,r===ST.sel);
   const fxs=curFixtures();
   for(const f of fxs)drawFixture(f,f===ST.sel);
   for(const n of curNotes())drawNote(n,n===ST.sel);
   if(ST.sel){
     if(ST.sel.type==="note")drawNoteHandles(ST.sel);
+    else if(ST.sel.type==="ref")drawRefHandles(ST.sel);
     else if(fxs.includes(ST.sel))drawHandles(ST.sel);
   }
   const sc=curScale();
@@ -1120,7 +1134,100 @@ function drawNoteHandles(n){
   const cs=corners(n);
   ctx.strokeStyle="rgba(244,166,74,.85)";ctx.lineWidth=1.4;ctx.setLineDash([5,4]);
   ctx.beginPath();ctx.moveTo(cs[0].x,cs[0].y);for(let i=1;i<4;i++)ctx.lineTo(cs[i].x,cs[i].y);ctx.closePath();ctx.stroke();ctx.setLineDash([]);
+  // corner (scale both)
   handleDot(cs[2].x,cs[2].y,"size");
+  // right-edge midpoint (width only)
+  const re={x:(cs[1].x+cs[2].x)/2,y:(cs[1].y+cs[2].y)/2};
+  handleDot(re.x,re.y,"size");
+  // bottom-edge midpoint (height only)
+  const be={x:(cs[2].x+cs[3].x)/2,y:(cs[2].y+cs[3].y)/2};
+  handleDot(be.x,be.y,"size");
+}
+const _refImgCache=new Map();
+function getRefImg(r){
+  if(_refImgCache.has(r.id))return _refImgCache.get(r.id);
+  const img=new Image();img.src=r.src;img.onload=()=>render();
+  _refImgCache.set(r.id,img);return img;
+}
+function drawRef(r,sel){
+  const img=getRefImg(r);
+  const z=ST.view.zoom,cs=corners(r);
+  const tl=cs[0],br=cs[2],w=br.x-tl.x,h=br.y-tl.y;
+  ctx.save();
+  ctx.globalAlpha=r.opacity??0.6;
+  if(img.complete&&img.naturalWidth)ctx.drawImage(img,tl.x,tl.y,w,h);
+  else{ctx.fillStyle="rgba(94,200,216,.25)";ctx.fillRect(tl.x,tl.y,w,h);}
+  ctx.globalAlpha=1;
+  ctx.strokeStyle=sel?"#5ec8d8":"rgba(94,200,216,.25)";
+  ctx.lineWidth=sel?1.5:1;ctx.setLineDash(sel?[5,4]:[4,4]);
+  ctx.strokeRect(tl.x,tl.y,w,h);ctx.setLineDash([]);
+  ctx.restore();
+}
+function drawRefHandles(r){
+  const cs=corners(r);
+  ctx.strokeStyle="rgba(94,200,216,.85)";ctx.lineWidth=1.4;ctx.setLineDash([5,4]);
+  ctx.beginPath();ctx.moveTo(cs[0].x,cs[0].y);for(let i=1;i<4;i++)ctx.lineTo(cs[i].x,cs[i].y);ctx.closePath();ctx.stroke();ctx.setLineDash([]);
+  handleDot(cs[2].x,cs[2].y,"size");
+  const re={x:(cs[1].x+cs[2].x)/2,y:(cs[1].y+cs[2].y)/2};handleDot(re.x,re.y,"size");
+  const be={x:(cs[2].x+cs[3].x)/2,y:(cs[2].y+cs[3].y)/2};handleDot(be.x,be.y,"size");
+}
+function hitRef(sx,sy){
+  const refs=curRefs();
+  for(let i=refs.length-1;i>=0;i--){
+    const r=refs[i],cs=corners(r);
+    const tl=cs[0],br=cs[2];
+    if(sx>=tl.x&&sx<=br.x&&sy>=tl.y&&sy<=br.y)return r;
+  }return null;
+}
+function addRef(src,imgW,imgH){
+  const plan=activePlan();if(!plan)return;
+  const z=ST.view.zoom;
+  // scale to fit 45% of CSS viewport (W/H are CSS pixels)
+  const maxW=(W*0.45)/z,maxH=(H*0.45)/z;
+  const sc=Math.min(maxW/imgW,maxH/imgH);
+  const rw=imgW*sc,rh=imgH*sc;
+  // plan right edge in screen pixels
+  const planRightSx=curPlanW()*z+ST.view.ox;
+  let wp;
+  if(planRightSx+rw*z+30<=W){
+    // space available to the right of the plan on screen → place there
+    wp=s2w(planRightSx+(W-planRightSx)/2, H/2);
+  }else{
+    // plan fills screen → place at right 70% of viewport, vertically centered
+    wp=s2w(W*0.7, H/2);
+  }
+  const r={id:uid(),type:"ref",src,x:wp.x,y:wp.y,w:rw,h:rh,opacity:0.6,rot:0};
+  curRefs().push(r);select(r,{toProp:true});render();autosave();
+}
+function deleteRef(r){
+  const refs=curRefs();const i=refs.indexOf(r);
+  if(i>=0){refs.splice(i,1);_refImgCache.delete(r.id);}
+  if(ST.sel===r)select(null);render();autosave();
+}
+async function loadRefFile(file){
+  const plan=activePlan();if(!plan){toast("Carica prima una piantina");return;}
+  let src,imgW,imgH;
+  if(file.type==="application/pdf"||file.name.toLowerCase().endsWith(".pdf")){
+    toast("Elaboro PDF riferimento…");
+    try{
+      await ensurePDFjs();
+      const buf=await file.arrayBuffer();
+      const pdf=await window.pdfjsLib.getDocument({data:buf}).promise;
+      let pageNum=1;
+      if(pdf.numPages>1){const r=prompt(`PDF di ${pdf.numPages} pagine. Quale pagina? (1-${pdf.numPages})`,"1");pageNum=Math.max(1,Math.min(pdf.numPages,parseInt(r)||1));}
+      const page=await pdf.getPage(pageNum);
+      let vp=page.getViewport({scale:1});const scale=Math.min(3,1800/Math.max(vp.width,vp.height));
+      vp=page.getViewport({scale});
+      const c=document.createElement("canvas");c.width=vp.width;c.height=vp.height;
+      await page.render({canvasContext:c.getContext("2d"),viewport:vp}).promise;
+      src=c.toDataURL("image/jpeg",0.88);imgW=vp.width;imgH=vp.height;
+    }catch(e){toast("Errore PDF riferimento");return;}
+  }else{
+    src=await new Promise(res=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.readAsDataURL(file);});
+    const img=await new Promise(res=>{const i=new Image();i.onload=()=>res(i);i.src=src;});
+    imgW=img.naturalWidth;imgH=img.naturalHeight;
+  }
+  addRef(src,imgW,imgH);toast("Immagine di riferimento aggiunta");
 }
 function drawLabel(text,cx,cy,f){
   if(!text)return;
@@ -1223,7 +1330,12 @@ function hitNote(sx,sy){
 }
 function hitNoteHandle(n,sx,sy){
   if(!n)return null;
-  const cs=corners(n);if(Math.hypot(sx-cs[2].x,sy-cs[2].y)<=13)return"size";
+  const cs=corners(n);
+  if(Math.hypot(sx-cs[2].x,sy-cs[2].y)<=13)return"corner";
+  const re={x:(cs[1].x+cs[2].x)/2,y:(cs[1].y+cs[2].y)/2};
+  if(Math.hypot(sx-re.x,sy-re.y)<=13)return"right";
+  const be={x:(cs[2].x+cs[3].x)/2,y:(cs[2].y+cs[3].y)/2};
+  if(Math.hypot(sx-be.x,sy-be.y)<=13)return"bottom";
   return null;
 }
 
@@ -1248,15 +1360,22 @@ cv.addEventListener("pointerdown",e=>{
     _drag={type:ST.mode,a:s2w(p.x,p.y),b:s2w(p.x,p.y)};render();return;
   }
   const selIsNote=ST.sel&&ST.sel.type==="note";
-  const hh=selIsNote?hitNoteHandle(ST.sel,p.x,p.y):hitHandle(ST.sel,p.x,p.y);
+  const selIsRef=ST.sel&&ST.sel.type==="ref";
+  const hh=(selIsNote||selIsRef)?hitNoteHandle(ST.sel,p.x,p.y):hitHandle(ST.sel,p.x,p.y);
   if(hh){
     snapshot();
     if(hh==="rot"){_drag={type:"rotate",f:ST.sel,startRot:ST.sel.rot,startA:angleTo(ST.sel,p)};}
+    else if(hh==="corner"){_drag={type:"note-resize",axis:"wh",f:ST.sel,startW:ST.sel.w,startH:ST.sel.h,startX:p.x,startY:p.y};}
+    else if(hh==="right"){_drag={type:"note-resize",axis:"w",f:ST.sel,startW:ST.sel.w,startX:p.x};}
+    else if(hh==="bottom"){_drag={type:"note-resize",axis:"h",f:ST.sel,startH:ST.sel.h,startY:p.y};}
     else{const c=w2s(ST.sel.x,ST.sel.y);_drag={type:"resize",f:ST.sel,startW:ST.sel.w,startH:ST.sel.h,startD:Math.max(6,Math.hypot(p.x-c.x,p.y-c.y))};}
     stage.classList.add("grabbing");return;
   }
   const n=hitNote(p.x,p.y);
   if(n){
+    // bring to front
+    const notes=curNotes();const ni=notes.indexOf(n);
+    if(ni>=0&&ni<notes.length-1){notes.splice(ni,1);notes.push(n);}
     select(n,{toProp:true});snapshot();
     const wp=s2w(p.x,p.y);
     _drag={type:"move",f:n,dx:n.x-wp.x,dy:n.y-wp.y,moved:false};
@@ -1269,6 +1388,15 @@ cv.addEventListener("pointerdown",e=>{
     _drag={type:"move",f,dx:f.x-wp.x,dy:f.y-wp.y,moved:false};
     stage.classList.add("grabbing");
   }else{
+    const rf=hitRef(p.x,p.y);
+    if(rf){
+      const refs=curRefs();const ri=refs.indexOf(rf);
+      if(ri>=0&&ri<refs.length-1){refs.splice(ri,1);refs.push(rf);}
+      select(rf,{toProp:true});snapshot();
+      const wp=s2w(p.x,p.y);
+      _drag={type:"move",f:rf,dx:rf.x-wp.x,dy:rf.y-wp.y,moved:false};
+      stage.classList.add("grabbing");render();return;
+    }
     select(null);
     _drag={type:"pan",last:p};
     stage.classList.add("grabbing");
@@ -1290,6 +1418,7 @@ cv.addEventListener("pointermove",e=>{
   if(d.type==="pan"){ST.view.ox+=p.x-d.last.x;ST.view.oy+=p.y-d.last.y;d.last=p;render();}
   else if(d.type==="move"){const wp=s2w(p.x,p.y);d.f.x=wp.x+d.dx;d.f.y=wp.y+d.dy;d.moved=true;render();}
   else if(d.type==="resize"){const c=w2s(d.f.x,d.f.y);const fac=Math.max(6,Math.hypot(p.x-c.x,p.y-c.y))/d.startD;d.f.w=Math.max(6,d.startW*fac);d.f.h=Math.max(6,d.startH*fac);render();syncSizeField(d.f);}
+  else if(d.type==="note-resize"){const z=ST.view.zoom;const MIN=40;if(d.axis==="w"||d.axis==="wh"){d.f.w=Math.max(MIN,(d.startW+(p.x-d.startX)/z));}if(d.axis==="h"||d.axis==="wh"){d.f.h=Math.max(MIN,(d.startH+(p.y-d.startY)/z));}render();}
   else if(d.type==="rotate"){let r=d.startRot+(angleTo(d.f,p)-d.startA);if(e.shiftKey)r=Math.round(r/15)*15;d.f.rot=((r%360)+360)%360;render();syncRotField(d.f);}
   else if(d.type==="scale"||d.type==="measure"){d.b=s2w(p.x,p.y);render();}
 },{passive:false});
@@ -1302,7 +1431,7 @@ function endPointer(e){
   if(!_drag)return;
   const d=_drag;_drag=null;
   if(d.type==="scale")finishScale(d);
-  else if(d.type==="move"||d.type==="resize"||d.type==="rotate")autosave();
+  else if(d.type==="move"||d.type==="resize"||d.type==="rotate"||d.type==="note-resize")autosave();
   render();
 }
 cv.addEventListener("pointerup",endPointer);
@@ -1940,6 +2069,29 @@ function fixtureCard(p){
 /* =========================================================================
    SIDEBAR — PROPERTIES
    ========================================================================= */
+function renderRefProps(body,r){
+  body.innerHTML=`
+    <div class="prophead">
+      <div class="pic" style="background:rgba(94,200,216,.18);border-radius:8px;display:flex;align-items:center;justify-content:center;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--cool)" stroke-width="1.7"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 15l5-5 4 4 3-3 5 5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8.5" cy="10" r="1.5" fill="var(--cool)" stroke="none"/></svg>
+      </div>
+      <div class="pt"><div class="l1">Immagine di riferimento</div></div>
+    </div>
+    <img class="ref-thumb" src="${escAttr(r.src)}" alt="">
+    <div class="field">
+      <label>Opacità</label>
+      <div class="opacity-row">
+        <input type="range" id="pRefOpacity" min="5" max="100" value="${Math.round((r.opacity??0.6)*100)}">
+        <span class="opacity-val" id="pRefOpacityVal">${Math.round((r.opacity??0.6)*100)}%</span>
+      </div>
+    </div>
+    <div class="prop-actions">
+      <button class="btn danger" id="pRefDel"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" stroke-linecap="round" stroke-linejoin="round"/></svg>Elimina</button>
+    </div>`;
+  const sl=$("#pRefOpacity"),vl=$("#pRefOpacityVal");
+  sl.addEventListener("input",()=>{r.opacity=sl.value/100;vl.textContent=sl.value+"%";render();autosaveLight();});
+  $("#pRefDel").addEventListener("click",()=>deleteRef(r));
+}
 function renderNoteProps(body,n){
   const NOTE_COLOR_NAMES={yellow:"Giallo",green:"Verde",blue:"Blu",white:"Bianco",pink:"Rosa",black:"Nero"};
   body.innerHTML=`
@@ -1979,6 +2131,7 @@ function renderProps(){
   const f=ST.sel;
   if(!f){body.innerHTML=`<div class="prop-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01" stroke-linecap="round"/></svg>Seleziona un proiettore sulla pianta per modificarne le proprietà.</div>`;return;}
   if(f.type==="note"){renderNoteProps(body,f);return;}
+  if(f.type==="ref"){renderRefProps(body,f);return;}
   const preset=PRESET_MAP[f.pid]||{};const bi=preset.bi;
   const isCustom=f.pid==="custom";
   const SHAPES=[
@@ -2312,9 +2465,9 @@ window.addEventListener("keydown",e=>{
   if(typing)return;
   if(e.key==="Escape"){if(ST.mode!=="select")setMode("select");else select(null);}
   if(ST.sel){
-    const isNote=ST.sel.type==="note";
-    if(e.key==="Delete"||e.key==="Backspace"){e.preventDefault();isNote?deleteNote(ST.sel):deleteFixture(ST.sel);}
-    if(e.key==="d"&&(e.metaKey||e.ctrlKey)){e.preventDefault();if(!isNote)duplicateFixture(ST.sel);}
+    const isNote=ST.sel.type==="note";const isRef=ST.sel.type==="ref";
+    if(e.key==="Delete"||e.key==="Backspace"){e.preventDefault();isNote?deleteNote(ST.sel):isRef?deleteRef(ST.sel):deleteFixture(ST.sel);}
+    if(e.key==="d"&&(e.metaKey||e.ctrlKey)){e.preventDefault();if(!isNote&&!isRef)duplicateFixture(ST.sel);}
     const step=e.shiftKey?planUnit():planUnit()/4;
     if(e.key==="ArrowLeft"){e.preventDefault();snapOnce();ST.sel.x-=step;render();autosave();}
     if(e.key==="ArrowRight"){e.preventDefault();snapOnce();ST.sel.x+=step;render();autosave();}
