@@ -1542,6 +1542,14 @@ const NOTE_COLORS={
   pink:"#f7b6d2",
   black:"#2a2a2a",
 };
+const TEXT_COLORS={
+  Bianco:"#ffffff",
+  Nero:"#1a1206",
+  Rosso:"#e8453a",
+  Verde:"#3aa757",
+  Giallo:"#f4c20d",
+  Blu:"#3a7be8",
+};
 function addNote(atWorld){
   const plan=activePlan();if(!plan)return null;
   const u=planUnit();
@@ -2184,6 +2192,12 @@ function renderTextProps(body,n){
       <textarea id="pTextContent" placeholder="Scrivi un testo…" spellcheck="false">${escAttr(n.text||"")}</textarea>
     </div>
     <div class="field"><label>Dimensione testo</label><div class="slider-row"><input type="range" id="pTextSize" min="10" max="72" value="${n.fontSize||18}"></div></div>
+    <div class="field">
+      <label>Colore testo</label>
+      <div class="note-colors">
+        ${Object.entries(TEXT_COLORS).map(([name,hex])=>`<button class="note-color${n.color===hex?' active':''}" data-c="${hex}" style="background:${hex}" title="${name}"></button>`).join("")}
+      </div>
+    </div>
     <div class="prop-actions">
       <button class="btn danger" id="pTextDel"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" stroke-linecap="round" stroke-linejoin="round"/></svg>Elimina</button>
     </div>`;
@@ -2193,6 +2207,14 @@ function renderTextProps(body,n){
   const sizeI=$("#pTextSize");
   sizeI.addEventListener("focus",snapOnce);
   sizeI.addEventListener("input",()=>{n.fontSize=+sizeI.value;render();autosaveLight();});
+  body.querySelectorAll(".note-color").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+      snapOnce();
+      n.color=btn.dataset.c;
+      body.querySelectorAll(".note-color").forEach(b=>b.classList.toggle("active",b===btn));
+      render();autosave();
+    });
+  });
   $("#pTextDel").addEventListener("click",()=>deleteNote(n));
 }
 function renderProps(){
