@@ -77,7 +77,7 @@
   .proj-btn.open .chev{transform:rotate(180deg);}
 
   .proj-drop{
-    position:absolute; top:calc(100% + 6px); left:0; z-index:200;
+    position:fixed; z-index:200;
     width:300px; background:var(--panel); border:1px solid var(--line2);
     border-radius:12px; overflow:hidden; overflow:clip;
     box-shadow:0 14px 44px rgba(0,0,0,.55), 0 2px 8px rgba(0,0,0,.3);
@@ -118,7 +118,7 @@
   .plans-btn.open .chev{transform:rotate(180deg);}
 
   .plans-drop{
-    position:absolute; top:calc(100% + 6px); left:0; z-index:200;
+    position:fixed; z-index:200;
     width:290px; background:var(--panel); border:1px solid var(--line2);
     border-radius:12px; overflow:hidden; overflow:clip;
     box-shadow:0 14px 44px rgba(0,0,0,.55), 0 2px 8px rgba(0,0,0,.3);
@@ -153,7 +153,7 @@
 
   /* ---------- save dropdown ---------- */
   .save-wrap{position:relative;flex:0 0 auto;}
-  .save-drop{position:absolute;top:calc(100% + 6px);right:0;z-index:200;
+  .save-drop{position:fixed;z-index:200;
     width:234px;background:var(--panel);border:1px solid var(--line2);
     border-radius:12px;overflow:hidden;
     box-shadow:0 14px 44px rgba(0,0,0,.55),0 2px 8px rgba(0,0,0,.3);
@@ -919,6 +919,14 @@ $("#btnHome").onclick=()=>{
 $("#homeNewProj").onclick=()=>{hideHome();createNewProject();};
 $("#homeImport").onclick=()=>$("#importInput").click();
 
+/* anchor a position:fixed dropdown under (or, if right-aligned, under-right of) its trigger button */
+function positionDropdown(drop,btn,align="left"){
+  const r=btn.getBoundingClientRect();
+  drop.style.top=Math.min(r.bottom+6,window.innerHeight-20)+"px";
+  if(align==="right"){drop.style.right=(window.innerWidth-r.right)+"px";drop.style.left="";}
+  else{drop.style.left=r.left+"px";drop.style.right="";}
+}
+
 /* =========================================================================
    SAVE / IMPORT BACKUP
    ========================================================================= */
@@ -940,6 +948,7 @@ function openSaveDrop(){
     $("#saveOptPlan").classList.add("disabled");
   }
   saveDropOpen=true;
+  positionDropdown($("#saveDrop"),$("#btnSave"),"right");
   $("#saveDrop").classList.remove("hidden");
 }
 $("#btnSave").onclick=()=>{saveDropOpen?closeSaveDrop():openSaveDrop();};
@@ -1579,7 +1588,7 @@ let projDropOpen=false;
 
 function toggleProjDrop(){
   projDropOpen=!projDropOpen;
-  if(projDropOpen){renderProjectsPanel();$("#projDrop").classList.remove("hidden");$("#btnProjects").classList.add("open");}
+  if(projDropOpen){renderProjectsPanel();positionDropdown($("#projDrop"),$("#btnProjects"));$("#projDrop").classList.remove("hidden");$("#btnProjects").classList.add("open");}
   else{$("#projDrop").classList.add("hidden");$("#btnProjects").classList.remove("open");}
 }
 function closeProjDrop(){
@@ -1765,6 +1774,7 @@ function togglePlansDrop(){
   const btn=$("#btnPlans");
   if(plansDropOpen){
     renderPlansPanel();
+    positionDropdown(drop,btn);
     drop.classList.remove("hidden");
     btn.classList.add("open");
   }else{
