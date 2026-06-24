@@ -34,7 +34,9 @@
   /* ---------- top bar ---------- */
   .bar{height:calc(var(--bar) + env(safe-area-inset-top)); flex:0 0 auto; display:flex; align-items:center; gap:4px;
     padding:env(safe-area-inset-top) calc(10px + env(safe-area-inset-right)) 0 calc(10px + env(safe-area-inset-left)); background:linear-gradient(180deg,#1b1e25,#171920);
-    border-bottom:1px solid var(--line); position:relative; z-index:30;}
+    border-bottom:1px solid var(--line); position:relative; z-index:30;
+    overflow-x:auto; overflow-y:hidden; -webkit-overflow-scrolling:touch; scrollbar-width:none;}
+  .bar::-webkit-scrollbar{display:none;}
   .brand{display:flex; align-items:center; padding-right:8px; margin-right:2px; flex:0 0 auto;}
   .brand .name{font-weight:600; letter-spacing:.22em; font-size:20px;}
   .brand .name b{color:var(--accent); font-weight:600;}
@@ -357,6 +359,19 @@
   @keyframes rotA{0%,40%{transform:rotate(0)} 60%,100%{transform:rotate(90deg)}}
   @media (max-width:820px) and (orientation:portrait){ .portrait{display:flex;} }
 
+  /* ---------- mobile / small-screen layout ---------- */
+  @media (max-width:900px){
+    :root{--side:clamp(220px, 78vw, 340px); --bar:50px;}
+    .proj-btn .plabel{max-width:54px;}
+    .plans-btn .plabel{max-width:50px;}
+    #btnExportPDF .btn-label{display:none;}
+    #btnExportPDF{padding:0 10px;}
+    .statusbar{font-size:10px; gap:8px; padding:6px 9px;}
+  }
+  @media (max-width:520px){
+    :root{--side:clamp(220px, 88vw, 360px);}
+  }
+
   .hidden{display:none !important;}
   input[type=number]{-moz-appearance:textfield; appearance:textfield;}
   input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none; appearance:none;}
@@ -419,7 +434,7 @@
 
     <button class="btn primary" id="btnExportPDF">
       <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke-linejoin="round"/><path d="M14 2v6h6M9 13h6M9 17h3" stroke-linecap="round"/></svg>
-      Esporta PDF
+      <span class="btn-label">Esporta PDF</span>
     </button>
     <div class="save-wrap">
       <button class="btn ghost icon" id="btnSave" title="Salva backup">
